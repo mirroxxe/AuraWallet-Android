@@ -198,7 +198,7 @@ curl -X POST http://localhost:8000/api/v1/transactions/categorize \
 | Повторний запит | новий результат без перезапуску | `submit()` скасовує попередній `Job` і відправляє новий |
 
 ```bash
-cd backend && pytest -q      # 27 тестів: парсер, класифікатор, валідація, HTTP
+cd backend && pytest -q      # 47 тестів: парсер, бюджет, класифікатор, валідація, HTTP
 ```
 
 ## Безпека
@@ -216,7 +216,7 @@ cd backend && pytest -q      # 27 тестів: парсер, класифіка
 
 Перевірка:
 ```bash
-cd backend && pytest -q                 # 44 тести, включно з test_budget.py і регресією ЛР2
+cd backend && pytest -q                 # 47 тестів, включно з test_budget.py і регресією ЛР2
 cd mobile && ./gradlew test             # ParsingTest + BudgetTest
 curl -X POST http://localhost:8000/api/v1/budget/summary -H "Content-Type: application/json" \
   -d '{"monthly_budget": 100, "transactions": [{"amount": 85, "category": "coffee"}]}'
