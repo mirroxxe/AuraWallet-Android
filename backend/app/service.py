@@ -99,8 +99,10 @@ def budget_summary(req: BudgetSummaryRequest) -> BudgetSummaryResponse:
     spent = round(sum(t.amount for t in expenses), 2)
     income = round(sum(t.amount for t in req.transactions if t.is_income), 2)
     remaining = round(req.monthly_budget - spent, 2)
-    percent = round(spent / req.monthly_budget * 100, 1)
-    status = "exceeded" if percent >= EXCEEDED_THRESHOLD else "warning" if percent >= WARNING_THRESHOLD else "ok"
+    raw_percent = spent / req.monthly_budget * 100
+    # Статус рахуємо з неокругленого значення: 799.9 з 1000 — ще «ok», хоча округлено це 80.0%.
+    status = "exceeded" if raw_percent >= EXCEEDED_THRESHOLD else "warning" if raw_percent >= WARNING_THRESHOLD else "ok"
+    percent = round(raw_percent, 1)
     daily = round(max(0.0, remaining) / days_left, 2)
 
     totals: dict[str, float] = {}
