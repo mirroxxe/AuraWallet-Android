@@ -93,9 +93,12 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ## Запуск мобільного застосунку
 
 1. Відкрийте папку `mobile/` в Android Studio (*File → Open*), дочекайтеся Gradle sync.
-2. Адреса backend задається в `mobile/local.properties` (див. `local.properties.example`):
-   - емулятор: `aura.apiBaseUrl=http://10.0.2.2:8000/` (значення за замовчуванням; `10.0.2.2` — це `localhost` комп'ютера);
-   - фізичний телефон у тій самій Wi‑Fi мережі: `aura.apiBaseUrl=http://<IP-комп'ютера>:8000/` (backend запускати з `--host 0.0.0.0`).
+2. Адреса backend задається в `mobile/local.properties` (див. `local.properties.example`). Рекомендований спосіб — тунель ADB, він працює і на емуляторі, і на телефоні через USB, незалежно від VPN чи мережі:
+   ```bash
+   ~/Library/Android/sdk/platform-tools/adb reverse tcp:8000 tcp:8000   # після кожного запуску емулятора
+   ```
+   і в `local.properties`: `aura.apiBaseUrl=http://127.0.0.1:8000/`.
+   Альтернативи: емулятор без тунелю — `http://10.0.2.2:8000/` (значення за замовчуванням; `10.0.2.2` — це `localhost` комп'ютера); телефон у тій самій Wi‑Fi — `http://<IP-комп'ютера>:8000/` (backend запускати з `--host 0.0.0.0`).
 3. Запустіть backend, потім натисніть **Run ▶** у Android Studio.
 4. Unit-тести клієнта: `./gradlew test` або правою кнопкою на `app/src/test` → *Run Tests*.
 
