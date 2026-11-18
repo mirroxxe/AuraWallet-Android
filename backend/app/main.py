@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
@@ -81,7 +82,7 @@ async def on_unexpected_error(_: Request, exc: Exception) -> JSONResponse:
     return _error(500, "internal_error", "Сталася внутрішня помилка сервера. Спробуйте пізніше.")
 
 
-def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
+def require_api_key(x_api_key: Optional[str] = Header(default=None)) -> None:
     if settings.api_key and x_api_key != settings.api_key:
         raise PermissionError
 

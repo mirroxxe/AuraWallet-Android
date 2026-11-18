@@ -489,7 +489,7 @@ private fun categoryIcon(category: String): ImageVector = when (category) {
 
 fun formatMoney(amount: Double, currency: String?, isIncome: Boolean): String {
     val symbol = when (currency) { "USD" -> "$"; "EUR" -> "€"; "PLN" -> "zł"; else -> "₴" }
-    val nf = NumberFormat.getNumberInstance(Locale("uk", "UA")).apply {
+    val nf = NumberFormat.getNumberInstance(Locale.forLanguageTag("uk-UA")).apply {
         minimumFractionDigits = if (amount % 1.0 == 0.0) 0 else 2
         maximumFractionDigits = 2
     }

@@ -1,7 +1,7 @@
 """Pydantic-моделі запиту й відповіді API."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -38,11 +38,11 @@ class CategorizeResponse(BaseModel):
     label: str = Field(..., description="Назва категорії мовою locale")
     confidence: float = Field(..., ge=0, le=1, description="Впевненість моделі 0..1")
     is_income: bool
-    amount: float | None = Field(None, description="Сума, якщо знайдена в тексті")
-    currency: str | None = Field(None, description="ISO-код валюти: UAH, USD, EUR, PLN")
-    merchant: str | None = Field(None, description="Відомий магазин або сервіс, якщо знайдено")
+    amount: Optional[float] = Field(None, description="Сума, якщо знайдена в тексті")
+    currency: Optional[str] = Field(None, description="ISO-код валюти: UAH, USD, EUR, PLN")
+    merchant: Optional[str] = Field(None, description="Відомий магазин або сервіс, якщо знайдено")
     explanation: str
-    alternatives: list[Alternative] = []
+    alternatives: List[Alternative] = []
     low_confidence: bool = Field(False, description="true, якщо модель невпевнена й варто обрати категорію вручну")
     processing_ms: float
 
@@ -58,7 +58,7 @@ class HealthResponse(BaseModel):
 class ErrorBody(BaseModel):
     code: str
     message: str
-    field: str | None = None
+    field: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):
