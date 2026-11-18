@@ -6,7 +6,7 @@ Base URL (dev): `http://127.0.0.1:8000/` через `adb reverse`, або `http:
 ## `GET /health`
 200:
 ```json
-{ "status": "ok", "version": "0.2.0", "model_loaded": true, "model_classes": 17, "training_samples": 201 }
+{ "status": "ok", "version": "0.3.0", "model_loaded": true, "model_classes": 17, "training_samples": 201 }
 ```
 `status = "degraded"`, якщо модель не завантажилась.
 
@@ -33,6 +33,26 @@ Base URL (dev): `http://127.0.0.1:8000/` через `adb reverse`, або `http:
 | `processing_ms` | number | час обробки на сервері |
 
 Mobile ігнорує невідомі поля (`ignoreUnknownKeys = true`), тож додавання нових полів у відповідь — сумісна зміна. Видалення чи перейменування — несумісна, потребує оновлення `ApiModels.kt` і цього документа.
+
+## `POST /api/v1/budget/summary` (ЛР3)
+Запит `BudgetSummaryRequest`:
+| Поле | Тип | Обов'язкове | Обмеження |
+|---|---|---|---|
+| `monthly_budget` | number | так | > 0, ≤ 10 000 000 |
+| `transactions` | `[{amount, category, is_income?}]` | ні (`[]`) | до 500 елементів; `amount` > 0; `category` — відомий код |
+| `today` | `YYYY-MM-DD` | ні | дата клієнта; за замовчуванням дата сервера |
+| `locale` | `"uk"` \| `"en"` | ні | |
+
+Відповідь 200 `BudgetSummaryResponse`: `monthly_budget`, `spent` (лише витрати), `income`, `remaining` (може бути < 0), `percent_used`, `status` (`ok` < 80% ≤ `warning` < 100% ≤ `exceeded`, рахується з неокругленого відсотка), `days_left` (включно з сьогодні), `daily_allowance` (≥ 0), `by_category` `[{category,label,amount,share}]` за спаданням, `message`, `counted_transactions`.
+
+Приклад:
+```json
+{"monthly_budget": 100, "today": "2026-11-18", "transactions": [{"amount": 85, "category": "coffee"}]}
+→ {"spent": 85.0, "remaining": 15.0, "percent_used": 85.0, "status": "warning", "days_left": 13,
+   "daily_allowance": 1.15, "by_category": [{"category": "coffee", "label": "Кава", "amount": 85.0, "share": 1.0}],
+   "message": "Використано 80% бюджету: лишилось ₴15 на 13 дн. — приблизно ₴1 на день.", ...}
+```
+Помилки: 422 `validation_error` з `field` у вигляді шляху, напр. `transactions.0.category`.
 
 ## Помилки
 Завжди `{"error": {"code": string, "message": string, "field"?: string}}`, без stack trace.

@@ -31,11 +31,17 @@
 |---|---|
 | `main.py` | `GET /health`, `POST /api/v1/transactions/categorize`, єдиний формат помилок, lifespan навчає модель |
 | `schemas.py` | `CategorizeRequest/Response`, `HealthResponse`, `ErrorResponse` |
-| `service.py` | `categorize()` = parser + classifier + поріг впевненості + пояснення |
+| `service.py` | `categorize()` = parser + classifier + поріг впевненості + пояснення; `budget_summary()` (ЛР3) |
 | `ai/parser.py` | `parse(text)` → сума, валюта, магазин, текст без суми |
 | `ai/classifier.py` | `TransactionClassifier` (навчання при старті на `training_data.csv`) |
 | `categories.py` | коди й підписи категорій uk/en, `INCOME_CATEGORIES` |
 | `config.py` | `Settings` зі змінних середовища |
+
+## Потік даних «Бюджет місяця» (ЛР3)
+1. «Зберегти» або «Застосувати» ліміт → `vm.refreshBudget()` (якщо збережених операцій немає → підказка без запиту).
+2. `repository.budgetSummary(budget, saved)` → `saved.toBudgetItems()` (лише UAH із сумою) → `POST /api/v1/budget/summary`.
+3. Backend `service.budget_summary()` → статус, денний ліміт, розподіл.
+4. `BudgetState.Ready` → картка «Бюджет місяця»; помилка → `BudgetState.Error` з «Повторити», не впливає на картку розпізнавання.
 
 ## Потік даних
 1. UI → `vm.submit()` → валідація (порожньо / лише цифри → помилка під полем, запит не йде).
