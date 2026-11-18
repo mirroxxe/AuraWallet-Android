@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1160" viewBox="0 0 1600 1160" font-family="Inter, DejaVu Sans, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#121a0e"/></marker></defs>
+<rect width="1600" height="1160" fill="#f6f6f1"/>
+<text x="800.0" y="48" font-size="26" font-weight="700" fill="#121a0e" text-anchor="middle">AuraWallet для Android — концептуальна архітектура</text>
+<text x="800.0" y="76" font-size="15" font-weight="400" fill="#5b6355" text-anchor="middle">Kotlin · Jetpack Compose · MVVM + Clean Architecture · Hilt</text>
+<rect x="640" y="98" width="320" height="44" rx="22" fill="#121a0e" stroke="none" stroke-width="1.5"/>
+<text x="800" y="126" font-size="15" font-weight="600" fill="#f6f6f1" text-anchor="middle">Користувач · Android-смартфон</text>
+<line x1="800" y1="142" x2="800" y2="170" stroke="#121a0e" stroke-width="1.6" marker-end="url(#a)"/>
+<rect x="140" y="172" width="1300" height="190" rx="18" fill="#e9e4f5" stroke="none" stroke-width="1.5"/>
+<text x="165" y="202" font-size="18" font-weight="700" fill="#121a0e" text-anchor="start">1. Шар представлення (UI)</text>
+<text x="165" y="222" font-size="13" font-weight="400" fill="#5b6355" text-anchor="start">Jetpack Compose екрани + Navigation; стан приходить зі StateFlow</text>
+<rect x="165.0" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="248.28571428571428" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Онбординг</text>
+<rect x="345.57142857142856" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="428.85714285714283" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Головна</text>
+<rect x="526.1428571428571" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="609.4285714285714" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Аналітика</text>
+<rect x="706.7142857142858" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="790.0000000000001" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Рахунки</text>
+<rect x="887.2857142857143" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="970.5714285714287" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Цілі</text>
+<rect x="1067.857142857143" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1151.142857142857" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Нова операція</text>
+<rect x="1248.4285714285716" y="232" width="166.57142857142858" height="48" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1331.7142857142858" y="261.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Профіль</text>
+<rect x="165" y="294" width="1250" height="48" rx="10" fill="#ffffff" stroke="#8f7fc4" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="790" y="324" font-size="14.5" font-weight="600" fill="#121a0e" text-anchor="middle">ViewModel-и (MVVM): HomeVM · AnalyticsVM · AccountsVM · GoalsVM · AddTransactionVM · ProfileVM</text>
+<line x1="800" y1="362" x2="800" y2="392" stroke="#121a0e" stroke-width="1.6" marker-end="url(#a)"/>
+<rect x="140" y="394" width="1300" height="140" rx="18" fill="#f7efcf" stroke="none" stroke-width="1.5"/>
+<text x="165" y="424" font-size="18" font-weight="700" fill="#121a0e" text-anchor="start">2. Доменний шар (бізнес-логіка)</text>
+<text x="165" y="444" font-size="13" font-weight="400" fill="#5b6355" text-anchor="start">Use cases — чисті Kotlin-класи без залежності від Android</text>
+<rect x="165.0" y="456" width="238.8" height="60" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="284.4" y="483.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Облік операцій</text>
+<text x="284.4" y="502.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">додати · змінити · видалити</text>
+<rect x="417.8" y="456" width="238.8" height="60" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="537.2" y="483.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Місячний бюджет</text>
+<text x="537.2" y="502.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">сповіщення на 80% і 100%</text>
+<rect x="670.6" y="456" width="238.8" height="60" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="790.0" y="483.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Цілі та округлення</text>
+<text x="790.0" y="502.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">round-ups, автовідкладання</text>
+<rect x="923.4000000000001" y="456" width="238.8" height="60" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1042.8000000000002" y="483.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Синхронізація з банком</text>
+<text x="1042.8000000000002" y="502.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">виписка Monobank, курси</text>
+<rect x="1176.2" y="456" width="238.8" height="60" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1295.6000000000001" y="483.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Резервна копія</text>
+<text x="1295.6000000000001" y="502.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">експорт / відновлення</text>
+<line x1="800" y1="534" x2="800" y2="564" stroke="#121a0e" stroke-width="1.6" marker-end="url(#a)"/>
+<rect x="140" y="566" width="1300" height="140" rx="18" fill="#f3dfd8" stroke="none" stroke-width="1.5"/>
+<text x="165" y="596" font-size="18" font-weight="700" fill="#121a0e" text-anchor="start">3. Шар даних (Repository)</text>
+<text x="165" y="616" font-size="13" font-weight="400" fill="#5b6355" text-anchor="start">Єдине джерело правди: вирішує, звідки брати дані — з бази чи з мережі</text>
+<rect x="165.0" y="628" width="196.66666666666666" height="52" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="263.3333333333333" y="659.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">TransactionRepository</text>
+<rect x="375.66666666666663" y="628" width="196.66666666666666" height="52" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="473.99999999999994" y="659.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">AccountRepository</text>
+<rect x="586.3333333333333" y="628" width="196.66666666666666" height="52" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="684.6666666666666" y="659.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">GoalRepository</text>
+<rect x="797.0" y="628" width="196.66666666666666" height="52" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="895.3333333333334" y="659.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">SettingsRepository</text>
+<rect x="1007.6666666666666" y="628" width="196.66666666666666" height="52" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1106.0" y="659.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">BankRepository</text>
+<rect x="1218.3333333333333" y="628" width="196.66666666666666" height="52" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1316.6666666666665" y="659.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">BackupRepository</text>
+<line x1="420" y1="706" x2="420" y2="752" stroke="#121a0e" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="800" y1="706" x2="800" y2="752" stroke="#121a0e" stroke-width="1.6" marker-end="url(#a)"/>
+<line x1="1180" y1="706" x2="1180" y2="752" stroke="#121a0e" stroke-width="1.6" marker-end="url(#a)"/>
+<rect x="140" y="754" width="405" height="300" rx="18" fill="#e4ece1" stroke="none" stroke-width="1.5"/>
+<text x="160" y="784" font-size="17" font-weight="700" fill="#121a0e" text-anchor="start">Локальне сховище</text>
+<text x="160" y="804" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="start">працює офлайн</text>
+<rect x="160" y="820.0" width="365" height="60.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="342.5" y="847.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Room (SQLite)</text>
+<text x="342.5" y="866.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">операції, рахунки, цілі</text>
+<rect x="160" y="892.0" width="365" height="60.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="342.5" y="919.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">DataStore</text>
+<text x="342.5" y="938.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">налаштування, мова, валюта</text>
+<rect x="160" y="964.0" width="365" height="60.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="342.5" y="991.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Android Keystore</text>
+<text x="342.5" y="1010.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">шифрований токен Monobank</text>
+<rect x="587" y="754" width="405" height="300" rx="18" fill="#e4ece1" stroke="none" stroke-width="1.5"/>
+<text x="607" y="784" font-size="17" font-weight="700" fill="#121a0e" text-anchor="start">Сервіси платформи</text>
+<text x="607" y="804" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="start">Android API</text>
+<rect x="607" y="820.0" width="365" height="42.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="789.5" y="838.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">WorkManager</text>
+<text x="789.5" y="857.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">фонова синхронізація</text>
+<rect x="607" y="874.0" width="365" height="42.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="789.5" y="892.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Notifications</text>
+<text x="789.5" y="911.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">бюджет, цілі, округлення</text>
+<rect x="607" y="928.0" width="365" height="42.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="789.5" y="946.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">BiometricPrompt</text>
+<text x="789.5" y="965.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">блокування відбитком</text>
+<rect x="607" y="982.0" width="365" height="42.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="789.5" y="1000.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">CameraX</text>
+<text x="789.5" y="1019.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">фото чека</text>
+<rect x="1034" y="754" width="405" height="300" rx="18" fill="#dfe6ee" stroke="none" stroke-width="1.5"/>
+<text x="1054" y="784" font-size="17" font-weight="700" fill="#121a0e" text-anchor="start">Зовнішні сервіси</text>
+<text x="1054" y="804" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="start">через мережу (Retrofit / SDK)</text>
+<rect x="1054" y="820.0" width="365" height="60.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1236.5" y="847.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Monobank API</text>
+<text x="1236.5" y="866.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">рахунки, виписка, курси</text>
+<rect x="1054" y="892.0" width="365" height="60.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1236.5" y="919.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Firebase Auth</text>
+<text x="1236.5" y="938.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">вхід через Google</text>
+<rect x="1054" y="964.0" width="365" height="60.0" rx="10" fill="#ffffff" stroke="#c9ccc2" stroke-width="1.2"/>
+<text x="1236.5" y="991.0" font-size="15" font-weight="600" fill="#121a0e" text-anchor="middle">Cloud Firestore</text>
+<text x="1236.5" y="1010.0" font-size="12.5" font-weight="400" fill="#5b6355" text-anchor="middle">хмарна резервна копія</text>
+<rect x="1470" y="172" width="96" height="882" rx="18" fill="#121a0e" stroke="none" stroke-width="1.5"/>
+<text x="1518" y="613" font-size="17" font-weight="700" fill="#f6f6f1" text-anchor="middle" transform="rotate(-90 1518 613)">Hilt — впровадження залежностей (DI) у всі шари</text>
+<text x="70" y="613" font-size="14" font-weight="600" fill="#5b6355" text-anchor="middle" transform="rotate(-90 70 613)">Залежності спрямовані лише донизу: UI → Domain → Data</text>
+<text x="800.0" y="1100" font-size="13.5" font-weight="400" fill="#5b6355" text-anchor="middle">Перенесення з iOS: SwiftUI → Compose · @Observable AppStore → ViewModel + StateFlow · Keychain → Keystore · BGTaskScheduler → WorkManager · Face ID → BiometricPrompt</text>
+</svg>
