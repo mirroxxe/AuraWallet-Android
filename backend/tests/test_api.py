@@ -46,3 +46,27 @@ def test_ai_failure_is_controlled(client, monkeypatch):
     assert r.status_code == 503
     assert r.json() == {"error": {"code": "ai_unavailable",
                                   "message": "AI-сервіс тимчасово недоступний. Спробуйте ще раз або оберіть категорію вручну."}}
+
+
+def test_budget_ok(client):
+    r = client.post("/api/v1/budget/summary", json={"monthly_budget": 100, "today": "2026-11-18",
+                                                     "transactions": [{"amount": 85, "category": "coffee"}]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "warning" and body["spent"] == 85 and body["days_left"] == 13
+
+
+@pytest.mark.parametrize("payload,field", [
+    ({"monthly_budget": 0, "transactions": []}, "monthly_budget"),
+    ({"monthly_budget": 100, "transactions": [{"amount": 5, "category": "nope"}]}, "transactions.0.category"),
+])
+def test_budget_validation(client, payload, field):
+    r = client.post("/api/v1/budget/summary", json=payload)
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "validation_error" and r.json()["error"]["field"] == field
+
+
+def test_categorize_still_works_after_lab3(client):
+    """Регресія ЛР2: основний сценарій не зламаний."""
+    r = client.post("/api/v1/transactions/categorize", json={"text": "Кава в Aroma Kava 85 грн"})
+    assert r.status_code == 200 and r.json()["category"] == "coffee"
