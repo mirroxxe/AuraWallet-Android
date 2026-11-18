@@ -39,8 +39,8 @@ data class CategorizeUiState(
     val result: ResultState = ResultState.Idle,
     val saved: List<SavedTransaction> = emptyList(),
     val server: ServerStatus = ServerStatus.Checking,
-    val monthlyBudget: Double = DEFAULT_BUDGET,
-    val budgetInput: String = DEFAULT_BUDGET.toInt().toString(),
+    val monthlyBudget: Double = CategorizeViewModel.DEFAULT_BUDGET,
+    val budgetInput: String = CategorizeViewModel.DEFAULT_BUDGET.toInt().toString(),
     val budgetInputError: String? = null,
     val budget: BudgetState = BudgetState.Empty,
 ) {
