@@ -75,11 +75,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurawallet.app.data.AppError
+import com.aurawallet.app.data.BudgetSummary
 import com.aurawallet.app.data.Categorization
 import com.aurawallet.app.data.SavedTransaction
 import com.aurawallet.app.ui.theme.Aura
@@ -146,6 +148,16 @@ fun CategorizeScreen(vm: CategorizeViewModel = viewModel()) {
                         is ResultState.Error -> ErrorCard(result.error, onRetry = vm::retry)
                     }
                 }
+            }
+            item {
+                BudgetCard(
+                    budget = state.budget,
+                    input = state.budgetInput,
+                    inputError = state.budgetInputError,
+                    onInput = vm::onBudgetInputChange,
+                    onApply = vm::applyBudget,
+                    onRetry = vm::refreshBudget,
+                )
             }
             if (state.saved.isNotEmpty()) {
                 item { Text("Збережено", style = MaterialTheme.typography.titleLarge, color = c.ink) }
@@ -494,6 +506,143 @@ fun formatMoney(amount: Double, currency: String?, isIncome: Boolean): String {
         maximumFractionDigits = 2
     }
     return (if (isIncome) "+" else "−") + symbol + nf.format(amount)
+}
+
+// ---------- Бюджет місяця (ЛР3) ----------
+
+/** Кольори сегментів як на головному екрані Aura (Figma: Home / Breakdown). */
+private fun sliceColor(category: String, ink: Color): Color = when (category) {
+    "groceries" -> ink
+    "cafes" -> Color(0xFFC9B4EE)
+    "transport" -> Color(0xFFEDBBC7)
+    "coffee" -> Color(0xFFE4D58F)
+    "entertainment" -> Color(0xFFF2C9A8)
+    "transfers" -> Color(0xFFB9CDAE)
+    else -> Color(0xFFDAD8D1)
+}
+
+@Composable
+private fun BudgetCard(
+    budget: BudgetState,
+    input: String,
+    inputError: String?,
+    onInput: (String) -> Unit,
+    onApply: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    val c = Aura.colors
+    AuraCard {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Бюджет місяця", style = MaterialTheme.typography.titleLarge, color = c.ink, modifier = Modifier.weight(1f))
+                if (budget is BudgetState.Loading) {
+                    CircularProgressIndicator(Modifier.size(18.dp), color = c.ink, strokeWidth = 2.dp)
+                }
+            }
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = onInput,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Ліміт на місяць, ₴") },
+                    isError = inputError != null,
+                    supportingText = if (inputError != null) { { Text(inputError, color = c.negative) } } else null,
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { onApply() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = c.ink, unfocusedBorderColor = c.line, cursorColor = c.ink,
+                        focusedTextColor = c.ink, unfocusedTextColor = c.ink,
+                    ),
+                )
+                Button(
+                    onClick = onApply,
+                    modifier = Modifier.padding(top = 8.dp).height(48.dp),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = c.stone, contentColor = c.ink),
+                ) { Text("Застосувати", style = MaterialTheme.typography.labelLarge) }
+            }
+            when (budget) {
+                BudgetState.Empty -> Text(
+                    "Збережіть першу операцію — тут з'явиться, скільки витрачено й скільки можна витрачати на день.",
+                    style = MaterialTheme.typography.bodyMedium, color = c.ink3,
+                )
+                BudgetState.Loading -> LinearProgressIndicator(Modifier.fillMaxWidth().clip(CircleShape), color = c.ink, trackColor = c.stone)
+                is BudgetState.Error -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Не вдалося порахувати бюджет. ${budget.error.userMessage}", style = MaterialTheme.typography.bodyMedium, color = c.ink2)
+                    TextButton(onClick = onRetry) {
+                        Icon(Icons.Filled.Refresh, contentDescription = null, tint = c.ink, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Повторити", color = c.ink)
+                    }
+                }
+                is BudgetState.Ready -> BudgetDetails(budget.summary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetDetails(b: BudgetSummary) {
+    val c = Aura.colors
+    val statusColor = when (b.status) {
+        BudgetSummary.Status.Ok -> c.positive
+        BudgetSummary.Status.Warning -> Color(0xFFB7791F)
+        BudgetSummary.Status.Exceeded -> c.negative
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(formatMoney(b.spent, "UAH", false).removePrefix("−"), style = MaterialTheme.typography.headlineMedium, color = c.ink)
+            Spacer(Modifier.width(8.dp))
+            Text("з ${formatMoney(b.monthlyBudget, "UAH", false).removePrefix("−")}", style = MaterialTheme.typography.bodyMedium,
+                color = c.ink2, modifier = Modifier.padding(bottom = 6.dp))
+            Spacer(Modifier.weight(1f))
+            Text("${"%.1f".format(b.percentUsed)}%", style = MaterialTheme.typography.titleMedium, color = statusColor,
+                modifier = Modifier.padding(bottom = 6.dp))
+        }
+        // Стекова смуга категорій + залишок бюджету (як у Figma)
+        Row(Modifier.fillMaxWidth().height(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            val usedShare = (b.percentUsed / 100).coerceIn(0.0, 1.0)
+            b.byCategory.forEach { s ->
+                val w = (s.share * usedShare).toFloat()
+                if (w > 0.005f) Box(Modifier.weight(w).fillMaxSize().clip(CircleShape).background(sliceColor(s.category, c.ink)))
+            }
+            val rest = (1 - usedShare).toFloat()
+            if (rest > 0.005f) Box(Modifier.weight(rest).fillMaxSize().clip(CircleShape).background(c.stone))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            b.byCategory.take(5).forEach { s ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(sliceColor(s.category, c.ink)))
+                    Spacer(Modifier.width(8.dp))
+                    Text(s.label, style = MaterialTheme.typography.bodyMedium, color = c.ink2, modifier = Modifier.weight(1f))
+                    Text(formatMoney(s.amount, "UAH", false).removePrefix("−"), style = MaterialTheme.typography.bodyMedium, color = c.ink)
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BudgetStat("Лишилось", formatMoney(kotlin.math.abs(b.remaining), "UAH", b.remaining >= 0).removePrefix("+"), Modifier.weight(1f))
+            BudgetStat("На день", formatMoney(b.dailyAllowance, "UAH", true).removePrefix("+"), Modifier.weight(1f))
+            BudgetStat("Днів", b.daysLeft.toString(), Modifier.weight(1f))
+        }
+        Text(
+            b.message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.ink,
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                .background(statusColor.copy(alpha = 0.12f)).padding(12.dp),
+        )
+    }
+}
+
+@Composable
+private fun BudgetStat(title: String, value: String, modifier: Modifier = Modifier) {
+    val c = Aura.colors
+    Column(modifier.clip(RoundedCornerShape(14.dp)).background(c.stone).padding(10.dp)) {
+        Text(title, style = MaterialTheme.typography.labelMedium, color = c.ink3)
+        Text(value, style = MaterialTheme.typography.titleMedium, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
 
 /** clickable, що не реагує під час завантаження. */
