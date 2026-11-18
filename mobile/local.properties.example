@@ -1,0 +1,7 @@
+# Скопіюйте у local.properties (Android Studio створює його сам — просто додайте рядки нижче).
+# Емулятор: 10.0.2.2 = localhost вашого комп'ютера.
+aura.apiBaseUrl=http://10.0.2.2:8000/
+# Фізичний телефон у тій самій Wi-Fi мережі: IP комп'ютера, напр.
+# aura.apiBaseUrl=http://192.168.0.105:8000/
+# Якщо на backend задано API_KEY:
+aura.apiKey=

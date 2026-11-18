@@ -1,0 +1,202 @@
+text,category
+Сільпо,groceries
+АТБ продукти,groceries
+Новус закупка на тиждень,groceries
+Ашан,groceries
+Метро продукти,groceries
+Фора,groceries
+Варус,groceries
+хліб і молоко,groceries
+овочі на ринку,groceries
+продукти додому,groceries
+супермаркет,groceries
+Rozetka Fresh продукти,groceries
+Glovo Сільпо доставка продуктів,groceries
+м'ясо та сир,groceries
+groceries at Silpo,groceries
+supermarket food,groceries
+Puzata Hata обід,cafes
+обід у ресторані,cafes
+вечеря з друзями в ресторані,cafes
+McDonald's,cafes
+KFC,cafes
+піца Celentano,cafes
+суші доставка,cafes
+Glovo бургер,cafes
+бізнес-ланч,cafes
+кафе,cafes
+ресторан,cafes
+шаурма,cafes
+Bolt Food піца,cafes
+lunch at restaurant,cafes
+dinner out,cafes
+кава,coffee
+Aroma Kava,coffee
+кава з собою,coffee
+лате,coffee
+капучино,coffee
+Lviv Croissants кава,coffee
+Starbucks,coffee
+Coffee Point,coffee
+One Love espresso bar,coffee
+Світ Кави,coffee
+американо,coffee
+кавʼярня,coffee
+coffee to go,coffee
+flat white,coffee
+Uklon,transport
+Bolt поїздка,transport
+таксі,transport
+таксі додому,transport
+метро,transport
+проїзд у маршрутці,transport
+квиток на трамвай,transport
+бензин ОККО,transport
+WOG пальне,transport
+заправка Shell,transport
+паркування,transport
+Uber,transport
+автобус,transport
+taxi to work,transport
+fuel at gas station,transport
+кіно Multiplex,entertainment
+квитки в кіно,entertainment
+концерт,entertainment
+театр,entertainment
+боулінг,entertainment
+квест кімната,entertainment
+Planeta Kino,entertainment
+квиток на фестиваль,entertainment
+Steam гра,entertainment
+PlayStation Store,entertainment
+музей,entertainment
+cinema tickets,entertainment
+concert tickets,entertainment
+Netflix,subscriptions
+Spotify,subscriptions
+YouTube Premium,subscriptions
+Apple Music,subscriptions
+iCloud,subscriptions
+Megogo,subscriptions
+ChatGPT Plus,subscriptions
+підписка,subscriptions
+Google One,subscriptions
+Figma підписка,subscriptions
+Adobe Creative Cloud,subscriptions
+Sweet.tv,subscriptions
+monthly subscription,subscriptions
+оренда квартири,housing
+комуналка,housing
+світло газ вода,housing
+квартплата,housing
+оплата за електроенергію,housing
+інтернет вдома Київстар Домашній,housing
+ОСББ,housing
+оренда житла,housing
+вода за місяць,housing
+опалення,housing
+rent payment,housing
+utilities bill,housing
+аптека,health
+Аптека АНЦ,health
+ліки,health
+вітаміни,health
+стоматолог,health
+лікар,health
+аналізи в лабораторії,health
+Подорожник аптека,health
+окуляри,health
+спортзал,health
+абонемент у фітнес,health
+pharmacy,health
+dentist,health
+Zara,clothing
+H&M,clothing
+кросівки,clothing
+одяг,clothing
+куртка,clothing
+джинси,clothing
+Reserved,clothing
+Intertop взуття,clothing
+шкарпетки,clothing
+футболка,clothing
+Answear,clothing
+new shoes,clothing
+clothes shopping,clothing
+подарунок мамі,gifts
+подарунок на день народження,gifts
+квіти,gifts
+букет,gifts
+сувенір другу,gifts
+подарунок,gifts
+листівка і подарунок,gifts
+gift for friend,gifts
+birthday present,gifts
+авіаквитки,travel
+Booking готель,travel
+Airbnb,travel
+квиток Укрзалізниця,travel
+поїзд Інтерсіті,travel
+хостел,travel
+готель,travel
+FlixBus,travel
+Ryanair,travel
+квитки на літак,travel
+подорож до Карпат,travel
+hotel booking,travel
+plane tickets,travel
+поповнення мобільного,mobile
+Київстар,mobile
+Vodafone,mobile
+lifecell,mobile
+мобільний зв'язок,mobile
+тариф на телефон,mobile
+поповнення рахунку телефону,mobile
+mobile top up,mobile
+phone plan,mobile
+Rozetka,shopping
+Епіцентр,shopping
+OLX покупка,shopping
+Prom.ua,shopping
+навушники,shopping
+побутова хімія,shopping
+Comfy техніка,shopping
+Фокстрот,shopping
+Amazon,shopping
+AliExpress,shopping
+JYSK,shopping
+IKEA,shopping
+Eva косметика,shopping
+Watsons,shopping
+online order,shopping
+переказ другу,transfers
+переказ на картку,transfers
+скинув Олегу,transfers
+переказ мамі,transfers
+переказ за квартиру сусіду,transfers
+повернув борг,transfers
+переказ з картки на картку,transfers
+transfer to friend,transfers
+sent money,transfers
+зарплата,salary
+зарплата за жовтень,salary
+аванс,salary
+заробітна плата,salary
+премія,salary
+зп,salary
+salary,salary
+monthly salary,salary
+фриланс,freelance
+оплата від клієнта,freelance
+Upwork,freelance
+Fiverr,freelance
+гонорар за дизайн,freelance
+оплата за проєкт,freelance
+замовлення на фрилансі,freelance
+freelance payment,freelance
+client payment,freelance
+кешбек,cashback
+кешбек від банку,cashback
+повернення кешбеку,cashback
+cashback,cashback
+бонуси повернення,cashback
