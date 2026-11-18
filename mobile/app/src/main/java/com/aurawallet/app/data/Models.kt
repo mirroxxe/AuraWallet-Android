@@ -49,3 +49,41 @@ fun CategorizeResponseDto.toDomain() = Categorization(
     lowConfidence = lowConfidence,
     processingMs = processingMs,
 )
+
+
+/** Підсумок бюджету місяця для UI. */
+data class BudgetSummary(
+    val monthlyBudget: Double,
+    val spent: Double,
+    val remaining: Double,
+    val percentUsed: Double,
+    val status: Status,
+    val daysLeft: Int,
+    val dailyAllowance: Double,
+    val byCategory: List<Slice>,
+    val message: String,
+) {
+    enum class Status { Ok, Warning, Exceeded }
+    data class Slice(val category: String, val label: String, val amount: Double, val share: Double)
+}
+
+fun BudgetSummaryResponseDto.toDomain() = BudgetSummary(
+    monthlyBudget = monthlyBudget,
+    spent = spent,
+    remaining = remaining,
+    percentUsed = percentUsed,
+    status = when (status) {
+        "exceeded" -> BudgetSummary.Status.Exceeded
+        "warning" -> BudgetSummary.Status.Warning
+        else -> BudgetSummary.Status.Ok
+    },
+    daysLeft = daysLeft,
+    dailyAllowance = dailyAllowance,
+    byCategory = byCategory.map { BudgetSummary.Slice(it.category, it.label, it.amount, it.share.coerceIn(0.0, 1.0)) },
+    message = message,
+)
+
+/** Лише гривневі операції з сумою потрапляють у розрахунок бюджету (конвертації валют поки немає). */
+fun List<SavedTransaction>.toBudgetItems(): List<BudgetTransactionDto> =
+    filter { it.amount != null && it.amount > 0 && (it.currency == null || it.currency == "UAH") }
+        .map { BudgetTransactionDto(amount = it.amount!!, category = it.category, isIncome = it.isIncome) }

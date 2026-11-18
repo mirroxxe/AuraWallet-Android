@@ -18,6 +18,9 @@ interface AuraApi {
 
     @POST("api/v1/transactions/categorize")
     suspend fun categorize(@Body body: CategorizeRequestDto): CategorizeResponseDto
+
+    @POST("api/v1/budget/summary")
+    suspend fun budgetSummary(@Body body: BudgetSummaryRequestDto): BudgetSummaryResponseDto
 }
 
 object Network {

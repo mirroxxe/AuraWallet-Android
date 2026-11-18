@@ -45,3 +45,43 @@ data class ErrorEnvelopeDto(val error: ErrorBodyDto)
 
 @Serializable
 data class ErrorBodyDto(val code: String, val message: String, val field: String? = null)
+
+// ---------- Бюджет місяця (ЛР3) — дзеркало BudgetSummaryRequest/Response з backend/app/schemas.py ----------
+
+@Serializable
+data class BudgetTransactionDto(
+    val amount: Double,
+    val category: String,
+    @SerialName("is_income") val isIncome: Boolean = false,
+)
+
+@Serializable
+data class BudgetSummaryRequestDto(
+    @SerialName("monthly_budget") val monthlyBudget: Double,
+    val transactions: List<BudgetTransactionDto>,
+    val today: String? = null,
+    val locale: String = "uk",
+)
+
+@Serializable
+data class CategorySpendDto(
+    val category: String,
+    val label: String,
+    val amount: Double,
+    val share: Double,
+)
+
+@Serializable
+data class BudgetSummaryResponseDto(
+    @SerialName("monthly_budget") val monthlyBudget: Double,
+    val spent: Double,
+    val income: Double,
+    val remaining: Double,
+    @SerialName("percent_used") val percentUsed: Double,
+    val status: String,
+    @SerialName("days_left") val daysLeft: Int,
+    @SerialName("daily_allowance") val dailyAllowance: Double,
+    @SerialName("by_category") val byCategory: List<CategorySpendDto> = emptyList(),
+    val message: String,
+    @SerialName("counted_transactions") val countedTransactions: Int = 0,
+)

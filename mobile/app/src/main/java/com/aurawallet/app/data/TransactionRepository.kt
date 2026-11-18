@@ -15,6 +15,16 @@ class TransactionRepository(private val api: AuraApi = Network.api) {
         api.categorize(CategorizeRequestDto(text = text.trim())).toDomain()
     }
 
+    suspend fun budgetSummary(budget: Double, saved: List<SavedTransaction>): Result<BudgetSummary> = call {
+        api.budgetSummary(
+            BudgetSummaryRequestDto(
+                monthlyBudget = budget,
+                transactions = saved.toBudgetItems(),
+                today = java.time.LocalDate.now().toString(),
+            ),
+        ).toDomain()
+    }
+
     suspend fun isServerUp(): Boolean = call { api.health().status == "ok" }.getOrDefault(false)
 
     private suspend fun <T> call(block: suspend () -> T): Result<T> = withContext(Dispatchers.IO) {
