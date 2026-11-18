@@ -15,8 +15,9 @@ from fastapi.responses import JSONResponse
 
 from .ai.classifier import AIUnavailableError, TransactionClassifier
 from .config import Settings, get_settings
-from .schemas import CategorizeRequest, CategorizeResponse, ErrorResponse, HealthResponse
-from .service import categorize
+from .schemas import (BudgetSummaryRequest, BudgetSummaryResponse, CategorizeRequest, CategorizeResponse,
+                      ErrorResponse, HealthResponse)
+from .service import budget_summary, categorize
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("aurawallet")
@@ -55,7 +56,7 @@ def _error(status: int, code: str, message: str, field: str | None = None) -> JS
 async def on_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
     first = exc.errors()[0] if exc.errors() else {}
     loc = [str(p) for p in first.get("loc", []) if p != "body"]
-    field = loc[0] if loc else None
+    field = ".".join(loc) if loc else None
     kind = first.get("type", "")
     if kind == "missing":
         message = f"Поле «{field}» обов'язкове"
@@ -63,6 +64,12 @@ async def on_validation_error(_: Request, exc: RequestValidationError) -> JSONRe
         message = "Опис не може бути порожнім"
     elif kind == "string_too_long":
         message = f"Опис занадто довгий: максимум {settings.max_text_length} символів"
+    elif kind == "greater_than":
+        message = f"Поле «{field}» має бути більше нуля"
+    elif kind == "less_than_equal":
+        message = f"Поле «{field}» занадто велике"
+    elif kind == "too_long":
+        message = "Забагато операцій в одному запиті (максимум 500)"
     elif kind in {"json_invalid", "model_attributes_type"}:
         message = "Тіло запиту має бути коректним JSON-об'єктом"
     else:
@@ -116,3 +123,14 @@ def categorize_transaction(req: CategorizeRequest, cfg: Settings = Depends(get_s
     if len(req.text) > cfg.max_text_length:
         raise RequestValidationError([{"type": "string_too_long", "loc": ("body", "text"), "msg": "too long"}])
     return categorize(req, state["classifier"], cfg)
+
+
+@app.post(
+    "/api/v1/budget/summary",
+    response_model=BudgetSummaryResponse,
+    tags=["budget"],
+    summary="Підсумок місячного бюджету за переданими операціями",
+    responses={401: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+)
+def budget(req: BudgetSummaryRequest, _: None = Depends(require_api_key)) -> BudgetSummaryResponse:
+    return budget_summary(req)

@@ -22,7 +22,7 @@ def _float(name: str, default: float) -> float:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "AuraWallet API"
-    version: str = "0.2.0"
+    version: str = "0.3.0"
     # Мінімальна впевненість моделі; нижче неї категорія повертається як "other".
     min_confidence: float = field(default_factory=lambda: _float("AI_MIN_CONFIDENCE", 0.30))
     # Для тесту сценарію «AI повернув помилку»: якщо true, AI-компонент завжди падає.
