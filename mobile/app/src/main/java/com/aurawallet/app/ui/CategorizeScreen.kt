@@ -64,6 +64,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -81,6 +83,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aurawallet.app.BuildConfig
 import com.aurawallet.app.domain.model.AppError
 import com.aurawallet.app.domain.model.BudgetSummary
 import com.aurawallet.app.domain.model.Categorization
@@ -126,7 +129,7 @@ fun CategorizeScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item { Header(state.server, onRetryHealth = vm::checkServer, onOpenHistory = onOpenHistory) }
+            item { Header(state.server, demo = state.demoMode, onRetryHealth = vm::checkServer, onOpenHistory = onOpenHistory) }
             item {
                 InputCard(
                     value = state.input,
@@ -175,6 +178,9 @@ fun CategorizeScreen(
                     onRetry = vm::refreshBudget,
                 )
             }
+            if (BuildConfig.DEBUG) {
+                item { DataSourceCard(demo = state.demoMode, onChange = vm::setDemoMode) }
+            }
             if (state.saved.isNotEmpty()) {
                 item { Text("Збережено", style = MaterialTheme.typography.titleLarge, color = c.ink) }
                 items(state.saved, key = { it.id }) { SavedRow(it) }
@@ -184,7 +190,7 @@ fun CategorizeScreen(
 }
 
 @Composable
-private fun Header(server: ServerStatus, onRetryHealth: () -> Unit, onOpenHistory: () -> Unit) {
+private fun Header(server: ServerStatus, demo: Boolean, onRetryHealth: () -> Unit, onOpenHistory: () -> Unit) {
     val c = Aura.colors
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
@@ -196,10 +202,13 @@ private fun Header(server: ServerStatus, onRetryHealth: () -> Unit, onOpenHistor
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Filled.History, contentDescription = "Історія", tint = c.ink) }
         Spacer(Modifier.width(8.dp))
-        val (dot, label) = when (server) {
-            ServerStatus.Checking -> c.ink3 to "Перевірка…"
+        val (dot, label) = when {
+            demo -> c.lilac to "Демо-дані"
+            else -> when (server) {
+                ServerStatus.Checking -> c.ink3 to "Перевірка…"
             ServerStatus.Online -> c.positive to "Сервер онлайн"
-            ServerStatus.Offline -> c.negative to "Офлайн"
+                ServerStatus.Offline -> c.negative to "Офлайн"
+            }
         }
         Row(
             Modifier
@@ -211,7 +220,7 @@ private fun Header(server: ServerStatus, onRetryHealth: () -> Unit, onOpenHistor
             Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
             Spacer(Modifier.width(6.dp))
             Text(label, style = MaterialTheme.typography.labelMedium, color = c.ink2)
-            if (server == ServerStatus.Offline) {
+            if (!demo && server == ServerStatus.Offline) {
                 Spacer(Modifier.width(4.dp))
                 TextButton(onClick = onRetryHealth, contentPadding = PaddingValues(0.dp)) {
                     Text("Ще раз", style = MaterialTheme.typography.labelMedium, color = c.ink)
@@ -675,3 +684,27 @@ private fun BudgetStat(title: String, value: String, modifier: Modifier = Modifi
 /** clickable, що не реагує під час завантаження. */
 private fun Modifier.clickableSafe(enabled: Boolean, onClick: () -> Unit): Modifier =
     this.clickable(enabled = enabled, onClick = onClick)
+
+/** ЛР5: debug-перемикач джерела розпізнавання (real ↔ fake repository). Лише в debug-збірці. */
+@Composable
+private fun DataSourceCard(demo: Boolean, onChange: (Boolean) -> Unit) {
+    val c = Aura.colors
+    AuraCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Демо-режим (debug)", style = MaterialTheme.typography.titleMedium, color = c.ink)
+                Text(
+                    if (demo) "Розпізнавання без сервера за ключовими словами. Слово «помилка» імітує збій."
+                    else "Розпізнавання через backend з AI.",
+                    style = MaterialTheme.typography.bodyMedium, color = c.ink2,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Switch(
+                checked = demo,
+                onCheckedChange = onChange,
+                colors = SwitchDefaults.colors(checkedTrackColor = c.ink, checkedThumbColor = c.onInk),
+            )
+        }
+    }
+}

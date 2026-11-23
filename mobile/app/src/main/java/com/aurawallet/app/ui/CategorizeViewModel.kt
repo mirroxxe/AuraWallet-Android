@@ -13,6 +13,7 @@ import com.aurawallet.app.domain.model.SavedTransaction
 import com.aurawallet.app.domain.model.toAppError
 import com.aurawallet.app.domain.repository.BudgetRepository
 import com.aurawallet.app.domain.repository.CategorizationRepository
+import com.aurawallet.app.domain.repository.DataSourceSwitch
 import com.aurawallet.app.domain.repository.HistoryStore
 import com.aurawallet.app.domain.usecase.CategorizeTransactionUseCase
 import com.aurawallet.app.domain.usecase.InputValidator
@@ -59,6 +60,8 @@ data class CategorizeUiState(
     val budget: BudgetState = BudgetState.Empty,
     /** Коротке повідомлення внизу екрана, напр. «Запит збережено в черзі». */
     val notice: String? = null,
+    /** ЛР5: увімкнено демо-джерело (fake repository) замість backend. */
+    val demoMode: Boolean = false,
 ) {
     val canSubmit: Boolean get() = input.isNotBlank() && result !is ResultState.Loading
 }
@@ -72,6 +75,7 @@ class CategorizeViewModel(
     private val categorization: CategorizationRepository,
     private val budgets: BudgetRepository,
     private val history: HistoryStore,
+    private val dataSource: DataSourceSwitch = DataSourceSwitch.Fixed,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CategorizeUiState())
@@ -81,7 +85,13 @@ class CategorizeViewModel(
     private var budgetRequest: Job? = null
 
     init {
-        checkServer()
+        // ЛР5: при перемиканні джерела оновлюємо прапорець і заново перевіряємо доступність.
+        viewModelScope.launch {
+            dataSource.isDemo.collect { demo ->
+                _state.update { it.copy(demoMode = demo) }
+                checkServer()
+            }
+        }
         // ЛР4: підтверджені операції читаються з Room, тож список і бюджет переживають перезапуск.
         viewModelScope.launch {
             history.observeConfirmed().collect { saved ->
@@ -98,6 +108,8 @@ class CategorizeViewModel(
             _state.update { it.copy(server = if (up) ServerStatus.Online else ServerStatus.Offline) }
         }
     }
+
+    fun setDemoMode(enabled: Boolean) = dataSource.setDemo(enabled)
 
     fun onInputChange(value: String) {
         _state.update { it.copy(input = value.take(MAX_LENGTH), inputError = null) }
@@ -206,7 +218,7 @@ class CategorizeViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as AuraApplication
-                CategorizeViewModel(app.categorizeUseCase, app.categorization, app.budgets, app.history)
+                CategorizeViewModel(app.categorizeUseCase, app.categorization, app.budgets, app.history, app.dataSource)
             }
         }
 

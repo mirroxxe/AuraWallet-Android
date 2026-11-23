@@ -30,3 +30,18 @@ interface HistoryStore {
     suspend fun addPending(input: String): Long
     suspend fun confirm(id: Long, category: String, label: String)
 }
+
+/**
+ * ЛР5, контрольне розширення: перемикання джерела розпізнавання між реальним backend і демо-даними.
+ * ViewModel знає лише цей інтерфейс, а не те, які саме реалізації перемикаються.
+ */
+interface DataSourceSwitch {
+    val isDemo: kotlinx.coroutines.flow.StateFlow<Boolean>
+    fun setDemo(enabled: Boolean)
+
+    /** Без перемикача (тести, release): завжди реальне джерело. */
+    object Fixed : DataSourceSwitch {
+        override val isDemo: kotlinx.coroutines.flow.StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+        override fun setDemo(enabled: Boolean) = Unit
+    }
+}

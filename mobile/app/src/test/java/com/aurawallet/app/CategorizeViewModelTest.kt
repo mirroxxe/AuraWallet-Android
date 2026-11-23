@@ -1,5 +1,7 @@
 package com.aurawallet.app
 
+import com.aurawallet.app.data.repository.FakeCategorizationRepository
+import com.aurawallet.app.data.repository.SwitchableCategorizationRepository
 import com.aurawallet.app.domain.model.AppError
 import com.aurawallet.app.domain.usecase.CategorizeTransactionUseCase
 import com.aurawallet.app.fakes.FakeBudgetRepository
@@ -117,5 +119,26 @@ class CategorizeViewModelTest {
 
         assertEquals(listOf("таксі 180"), history.pending)
         assertEquals(ResultState.Idle, vm.state.value.result)
+    }
+
+    @Test
+    fun demoSwitchChangesSourceAndHeaderState() = runTest {
+        val real = ScriptedCategorizationRepository(failure(AppError.Network)).apply { available = false }
+        val switch = SwitchableCategorizationRepository(real, FakeCategorizationRepository(delayMs = 0))
+        val history = InMemoryHistoryStore()
+        val vm = CategorizeViewModel(CategorizeTransactionUseCase(switch, history), switch, FakeBudgetRepository(), history, switch)
+        advanceUntilIdle()
+        assertEquals(ServerStatus.Offline, vm.state.value.server)
+
+        vm.setDemoMode(true)
+        advanceUntilIdle()
+        assertTrue(vm.state.value.demoMode)
+        assertEquals(ServerStatus.Online, vm.state.value.server)
+
+        vm.onInputChange("Кава в Aroma Kava 85 грн")
+        vm.submit()
+        advanceUntilIdle()
+        assertEquals("coffee", (vm.state.value.result as ResultState.Success).result.category)
+        assertTrue(real.calls.isEmpty())
     }
 }
