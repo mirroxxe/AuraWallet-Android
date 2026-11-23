@@ -100,3 +100,12 @@
 Не зберігаються: помилки backend і їхні тексти, HTTP-коди, stack trace, `X-API-Key`, адреса сервера, відповіді, які не вдалося розібрати.
 
 Потік «очікує» (підвищений рівень): помилка мережі/тайм-аут → «Зберегти запит і надіслати пізніше» → `PENDING` → в історії «Надіслати» → атомарний `UPDATE … WHERE status='PENDING'` у `SENDING` (друге натискання повертає 0 рядків і ігнорується) → успіх `DONE` / помилка знову `PENDING`. На старті екрана історії зависле `SENDING` повертається в `PENDING`.
+
+## Потік даних «Персоналізація» (ЛР6)
+1. Room: підтверджені записи, де `chosen_category ≠ category` → `HistoryDao.corrections(50)` → `HistoryStore.personalExamples()`.
+2. `CategorizeTransactionUseCase(text, personalize)` додає їх у `CategorizationInput.personalExamples` (чип «Враховувати мої виправлення» в UI).
+3. Mapper → `CategorizeRequestDto.personal_examples` → `POST /api/v1/transactions/categorize`.
+4. Backend `service.categorize`: `parse` → `personalizer.prepare` → `classifier.predict` + `personalizer.best_match` → `personalizer.decide` → відповідь з `confidence_source` і `personalization`.
+5. Mapper → `Categorization.personalization` → `ResultCard`: жовта плашка «Персоналізовано: як «…»», підпис «Схожість з вашою операцією».
+Виправлення зберігаються лише на пристрої; сервер їх не зберігає й не логує.
+
