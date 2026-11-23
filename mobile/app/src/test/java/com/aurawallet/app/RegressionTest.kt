@@ -1,12 +1,12 @@
 package com.aurawallet.app
 
-import com.aurawallet.app.data.AuraApi
-import com.aurawallet.app.data.BudgetSummaryRequestDto
-import com.aurawallet.app.data.BudgetSummaryResponseDto
-import com.aurawallet.app.data.CategorizeRequestDto
-import com.aurawallet.app.data.CategorizeResponseDto
-import com.aurawallet.app.data.HealthDto
-import com.aurawallet.app.data.TransactionRepository
+import com.aurawallet.app.data.remote.AuraApi
+import com.aurawallet.app.data.remote.BudgetSummaryRequestDto
+import com.aurawallet.app.data.remote.BudgetSummaryResponseDto
+import com.aurawallet.app.data.remote.CategorizeRequestDto
+import com.aurawallet.app.data.remote.CategorizeResponseDto
+import com.aurawallet.app.data.remote.HealthDto
+import com.aurawallet.app.data.repository.RemoteCategorizationRepository
 import com.aurawallet.app.domain.model.AppError
 import com.aurawallet.app.domain.model.CategorizationInput
 import com.aurawallet.app.domain.model.toAppError
@@ -35,7 +35,7 @@ class RegressionTest {
     }
 
     private fun categorizeWith(error: Throwable): AppError =
-        runBlocking { TransactionRepository(ThrowingApi(error)).categorize(CategorizationInput("кава 85")).exceptionOrNull()!!.toAppError() }
+        runBlocking { RemoteCategorizationRepository(ThrowingApi(error)).categorize(CategorizationInput("кава 85")).exceptionOrNull()!!.toAppError() }
 
     private fun http(code: Int, body: String) =
         HttpException(Response.error<Any>(code, body.toResponseBody("application/json".toMediaType())))
@@ -59,6 +59,9 @@ class RegressionTest {
         val e = categorizeWith(http(500, "oops"))
         assertTrue(e.userMessage.contains("500"))
     }
+
+    @Test
+    fun unexpectedExceptionIsUnknownNotNetwork() = assertEquals(AppError.Unknown, categorizeWith(IllegalStateException("bug")))
 
     @Test
     fun validationMessagesAreStable() {

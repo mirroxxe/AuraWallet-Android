@@ -1,10 +1,19 @@
-package com.aurawallet.app.data
+package com.aurawallet.app.data.mapper
 
+import com.aurawallet.app.data.remote.BudgetSummaryRequestDto
+import com.aurawallet.app.data.remote.BudgetSummaryResponseDto
+import com.aurawallet.app.data.remote.BudgetTransactionDto
+import com.aurawallet.app.data.remote.CategorizeRequestDto
+import com.aurawallet.app.data.remote.CategorizeResponseDto
 import com.aurawallet.app.domain.model.BudgetSummary
 import com.aurawallet.app.domain.model.Categorization
+import com.aurawallet.app.domain.model.CategorizationInput
 import com.aurawallet.app.domain.model.SavedTransaction
 
-/** Перетворення DTO ↔ доменні моделі. */
+/** Перетворення DTO ↔ доменні моделі. Єдине місце, яке знає і про JSON-формат, і про домен. */
+
+fun CategorizationInput.toDto() = CategorizeRequestDto(text = text.trim(), locale = locale)
+
 fun CategorizeResponseDto.toDomain() = Categorization(
     category = category,
     label = label,
@@ -39,3 +48,6 @@ fun BudgetSummaryResponseDto.toDomain() = BudgetSummary(
 fun List<SavedTransaction>.toBudgetItems(): List<BudgetTransactionDto> =
     filter { it.amount != null && it.amount > 0 && (it.currency == null || it.currency == "UAH") }
         .map { BudgetTransactionDto(amount = it.amount!!, category = it.category, isIncome = it.isIncome) }
+
+fun budgetRequest(monthlyBudget: Double, saved: List<SavedTransaction>, today: String) =
+    BudgetSummaryRequestDto(monthlyBudget = monthlyBudget, transactions = saved.toBudgetItems(), today = today)

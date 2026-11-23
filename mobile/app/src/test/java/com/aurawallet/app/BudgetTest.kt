@@ -1,11 +1,11 @@
 package com.aurawallet.app
 
 import com.aurawallet.app.domain.model.BudgetSummary
-import com.aurawallet.app.data.BudgetSummaryResponseDto
-import com.aurawallet.app.data.Network
+import com.aurawallet.app.data.remote.BudgetSummaryResponseDto
+import com.aurawallet.app.data.remote.Network
 import com.aurawallet.app.domain.model.SavedTransaction
-import com.aurawallet.app.data.toBudgetItems
-import com.aurawallet.app.data.toDomain
+import com.aurawallet.app.data.mapper.toBudgetItems
+import com.aurawallet.app.data.mapper.toDomain
 import com.aurawallet.app.ui.CategorizeViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

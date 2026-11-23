@@ -6,9 +6,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aurawallet.app.AuraApplication
-import com.aurawallet.app.data.HistoryRecord
-import com.aurawallet.app.data.HistoryRepository
-import com.aurawallet.app.data.HistoryStatus
+import com.aurawallet.app.data.repository.HistoryRecord
+import com.aurawallet.app.data.repository.HistoryRepository
+import com.aurawallet.app.data.repository.HistoryStatus
 import com.aurawallet.app.domain.model.CategorizationInput
 import com.aurawallet.app.domain.model.toAppError
 import com.aurawallet.app.domain.repository.CategorizationRepository

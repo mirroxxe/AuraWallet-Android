@@ -49,8 +49,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.aurawallet.app.data.HistoryRecord
-import com.aurawallet.app.data.HistoryStatus
+import com.aurawallet.app.data.repository.HistoryRecord
+import com.aurawallet.app.data.repository.HistoryStatus
 import com.aurawallet.app.ui.theme.Aura
 import java.time.Instant
 import java.time.ZoneId

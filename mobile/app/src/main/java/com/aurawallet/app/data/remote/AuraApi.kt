@@ -1,4 +1,4 @@
-package com.aurawallet.app.data
+package com.aurawallet.app.data.remote
 
 import com.aurawallet.app.BuildConfig
 import kotlinx.serialization.json.Json

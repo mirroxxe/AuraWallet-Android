@@ -1,9 +1,9 @@
 package com.aurawallet.app
 
-import com.aurawallet.app.data.CategorizeResponseDto
-import com.aurawallet.app.data.ErrorEnvelopeDto
-import com.aurawallet.app.data.Network
-import com.aurawallet.app.data.toDomain
+import com.aurawallet.app.data.remote.CategorizeResponseDto
+import com.aurawallet.app.data.remote.ErrorEnvelopeDto
+import com.aurawallet.app.data.remote.Network
+import com.aurawallet.app.data.mapper.toDomain
 import com.aurawallet.app.domain.usecase.InputValidator
 import kotlinx.serialization.SerializationException
 import org.junit.Assert.assertEquals

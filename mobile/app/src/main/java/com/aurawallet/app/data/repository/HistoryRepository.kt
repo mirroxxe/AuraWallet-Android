@@ -1,4 +1,4 @@
-package com.aurawallet.app.data
+package com.aurawallet.app.data.repository
 
 import com.aurawallet.app.data.local.HistoryDao
 import com.aurawallet.app.domain.model.Categorization
@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 /** Статуси запису: готово / очікує / надсилається. */
 enum class HistoryStatus { DONE, PENDING, SENDING }
@@ -34,6 +35,9 @@ private data class StoredAlternative(val category: String, val label: String, va
 
 private val altSerializer = ListSerializer(StoredAlternative.serializer())
 
+/** Власний Json для поля alternatives: локальне сховище не залежить від мережевого шару. */
+private val storageJson = Json { ignoreUnknownKeys = true }
+
 /** Перетворення готового результату в рядок БД. Помилки сюди не потрапляють за типом: лише [Categorization]. */
 fun Categorization.toEntity(input: String, now: Long): HistoryEntity = HistoryEntity(
     createdAt = now,
@@ -48,7 +52,7 @@ fun Categorization.toEntity(input: String, now: Long): HistoryEntity = HistoryEn
     currency = currency,
     merchant = merchant,
     explanation = explanation,
-    alternatives = Network.json.encodeToString(altSerializer, alternatives.map { StoredAlternative(it.category, it.label, it.confidence) }),
+    alternatives = storageJson.encodeToString(altSerializer, alternatives.map { StoredAlternative(it.category, it.label, it.confidence) }),
     processingMs = processingMs,
 )
 
@@ -65,7 +69,7 @@ fun HistoryEntity.toRecord(): HistoryRecord {
             merchant = merchant,
             explanation = explanation.orEmpty(),
             alternatives = alternatives?.let { raw ->
-                runCatching { Network.json.decodeFromString(altSerializer, raw) }.getOrDefault(emptyList())
+                runCatching { storageJson.decodeFromString(altSerializer, raw) }.getOrDefault(emptyList())
                     .map { Categorization.Alternative(it.category, it.label, it.confidence) }
             }.orEmpty(),
             lowConfidence = lowConfidence,

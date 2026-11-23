@@ -1,11 +1,11 @@
 package com.aurawallet.app
 
 import com.aurawallet.app.domain.model.Categorization
-import com.aurawallet.app.data.HistoryStatus
+import com.aurawallet.app.data.repository.HistoryStatus
 import com.aurawallet.app.data.local.HistoryEntity
-import com.aurawallet.app.data.toEntity
-import com.aurawallet.app.data.toRecord
-import com.aurawallet.app.data.toSavedTransaction
+import com.aurawallet.app.data.repository.toEntity
+import com.aurawallet.app.data.repository.toRecord
+import com.aurawallet.app.data.repository.toSavedTransaction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
