@@ -238,7 +238,24 @@ curl -X POST http://localhost:8000/api/v1/budget/summary -H "Content-Type: appli
 
 ## ЛР5: оптимізація архітектури (варіант А — Mobile)
 **Варіант:** А, архітектура мобільного клієнта. **Сценарій:** AI-розпізнавання операції (ЛР2) разом із записом в історію (ЛР4).
-План, знайдені проблеми й цільова структура: [`docs/lab5/plan.md`](docs/lab5/plan.md).
+
+**Проблеми до рефакторингу** (детально — [`docs/lab5/plan.md`](docs/lab5/plan.md)): `CategorizeViewModel` змішував валідацію, виклик API й запис в історію; ViewModel залежав від конкретного `TransactionRepository` з глобальним Retrofit (`Network.api`), тому без backend його не можна було протестувати; доменні моделі лежали разом із DTO-мапінгом; будь-який невідомий виняток показувався як «немає з'єднання».
+
+**Після:** `ui → domain ← data`.
+```
+ui/        CategorizeScreen, CategorizeViewModel (Idle/Loading/Success/Error, retry)
+domain/    model/ (Categorization, AppError…), repository/ (інтерфейси), usecase/ (CategorizeTransactionUseCase, InputValidator)
+data/      remote/ (Retrofit, DTO, safeApiCall), mapper/, repository/ (Remote…, Fake…, Switchable…, HistoryRepository), local/ (Room)
+AuraApplication — composition root, constructor injection через viewModelFactory
+```
+- Інтерфейс `CategorizationRepository` → `RemoteCategorizationRepository` (FastAPI) і `FakeCategorizationRepository` (без мережі).
+- **Контрольне розширення:** debug-перемикач «Демо-режим» на головному екрані (real ↔ fake), `SwitchableCategorizationRepository`.
+- 24 нових JVM-тести без backend: `RegressionTest`, `CategorizeUseCaseTest`, `FakeRepositoryTest`, `CategorizeViewModelTest`, `SwitchableRepositoryTest`.
+
+```bash
+cd mobile && ./gradlew test        # усі unit-тести, backend не потрібен
+```
+Запуск застосунку й backend — як у розділах вище. Для перевірки без backend увімкніть «Демо-режим (debug)» внизу головного екрана.
 
 ## Обмеження поточної версії
 
@@ -254,6 +271,7 @@ curl -X POST http://localhost:8000/api/v1/budget/summary -H "Content-Type: appli
 - [x] ЛР2 — MVP: mobile → backend → AI → результат у застосунку
 - [x] ЛР3 — Knowledge Base (`docs/`), правила для coding agent, «Бюджет місяця» (`POST /api/v1/budget/summary` + картка в застосунку)
 - [x] ЛР4 — локальна історія в Room: список, деталі, видалення/очищення з підтвердженням, «очікує» + «Надіслати»
+- [x] ЛР5 — варіант А: шари ui / domain / data, use case, інтерфейс репозиторію з real і fake реалізаціями, ручний DI, тести без backend, демо-перемикач
 
 ## Дизайн
 

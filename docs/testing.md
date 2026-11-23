@@ -13,7 +13,7 @@ pytest -q tests/test_service.py  # без HTTP (не потребує fastapi/ht
 ## Mobile
 ```bash
 cd mobile
-./gradlew test            # JVM unit-тести (ParsingTest, BudgetTest, HistoryMappingTest)
+./gradlew test            # JVM unit-тести (див. перелік нижче), backend не потрібен
 ./gradlew connectedDebugAndroidTest   # ЛР4: HistoryDaoTest на емуляторі (Room у пам'яті)
 ./gradlew assembleDebug   # перевірка компіляції
 ```
@@ -57,6 +57,25 @@ Mobile: `BudgetTest` (розбір відповіді, лише UAH-операц
 | H10 | Після H1–H9 повторити M1 і B1 | ЛР2 і ЛР3 працюють |
 
 Автотести: `HistoryMappingTest` (мапінг Entity ↔ домен, PENDING без результату, обрана категорія для бюджету, битий JSON альтернатив), `HistoryDaoTest` (порядок DESC, delete/clear, PENDING→SENDING лише раз, підтверджені для бюджету).
+
+## Архітектура ЛР5: автотести без backend
+| Клас | Що перевіряє |
+|---|---|
+| `RegressionTest` (6) | зафіксована до рефакторингу поведінка: тайм-аут, IOException, конверт помилки backend, HTTP 500, невідомий виняток → `Unknown`, тексти валідації |
+| `CategorizeUseCaseTest` (5) | trim + locale, запис успіху в історію; некоректний текст не доходить до репозиторію; помилка мережі не зберігається; повідомлення backend; збій історії не ховає результат |
+| `FakeRepositoryTest` (4) | друга реалізація: кава/сума/валюта, дохід і USD, «Інше» з низькою впевненістю, контрольована помилка |
+| `CategorizeViewModelTest` (6) | Success з id запису; Network → Error + Offline, `retry()` зберігає введення; валідація без запиту; «Зберегти» → бюджет; черга «очікує»; демо-перемикач |
+| `SwitchableRepositoryTest` (3) | real за замовчуванням, demo не чіпає real, той самий use case з обома джерелами |
+
+Test doubles: `test/.../fakes/TestDoubles.kt` (`ScriptedCategorizationRepository`, `InMemoryHistoryStore`, `FakeBudgetRepository`).
+
+## Сценарії ЛР5 (ручні)
+| # | Сценарій | Очікування |
+|---|---|---|
+| A1 | M1–M6, B1, H2–H4 | як до рефакторингу |
+| A2 | Увімкнути «Демо-режим (debug)», backend вимкнено | у заголовку «Демо-дані»; «Кава в Aroma Kava 85 грн» → «Кава», 85 ₴ |
+| A3 | Демо: «помилка 10» | картка помилки «Демо-режим: імітація збою сервера.» + Повторити |
+| A4 | Вимкнути демо, backend вимкнено → Розпізнати | «Немає з'єднання…», як M3 |
 
 ## Мережа для ручних тестів
 `adb reverse tcp:8000 tcp:8000` + `aura.apiBaseUrl=http://127.0.0.1:8000/` (див. README).

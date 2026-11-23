@@ -1,40 +1,57 @@
 # Architecture
 
 ```
-┌──────────── Android (mobile/) ─────────────┐        HTTP/JSON        ┌──────────── Backend (backend/) ────────────┐
-│ CategorizeScreen (Compose)                 │                         │ main.py      FastAPI, обробники помилок    │
-│   ↑ StateFlow<CategorizeUiState>           │  POST /api/v1/          │ schemas.py   Pydantic-моделі               │
-│ CategorizeViewModel                        │  transactions/categorize│ service.py   бізнес-логіка                 │
-│   ↓ suspend                                │ ──────────────────────► │ ai/parser.py сума, валюта, магазин (regex) │
-│ TransactionRepository (мапінг помилок)     │                         │ ai/classifier.py TF-IDF + LogisticRegression│
-│   ↓                                        │ ◄────────────────────── │ config.py    змінні середовища             │
-│ AuraApi (Retrofit + OkHttp + kotlinx.ser.) │   CategorizeResponse    │                                            │
-│                                            │                         │                                            │
-│ HistoryScreen / HistoryDetailsScreen (ЛР4) │                         │                                            │
-│ HistoryViewModel → HistoryRepository       │                         │                                            │
-│   ↓ Flow                                   │                         │                                            │
-│ Room: AuraDatabase (aura.db) → HistoryDao  │                         │                                            │
-└────────────────────────────────────────────┘                         └────────────────────────────────────────────┘
+┌──────────────────────────── Android (mobile/) ─────────────────────────────┐      HTTP/JSON      ┌──── Backend (backend/) ────┐
+│ ui/ (presentation)   CategorizeScreen ── CategorizeViewModel ── UiState    │                     │ main.py   FastAPI          │
+│                      HistoryScreen ──── HistoryViewModel                   │                     │ schemas.py Pydantic        │
+│        │ use case + інтерфейси (constructor injection)                     │                     │ service.py бізнес-логіка   │
+│ domain/  usecase/  CategorizeTransactionUseCase, InputValidator            │                     │ ai/  TF-IDF + LogReg, regex│
+│          repository/ CategorizationRepository, BudgetRepository,           │                     │                            │
+│                      HistoryStore, DataSourceSwitch  (interfaces)          │                     │                            │
+│          model/  Categorization, AppError, CategorizationInput, …          │                     │                            │
+│        ▲ реалізують                                                         │                     │                            │
+│ data/    repository/ Remote*Repository ─┐  Fake*Repository  Switchable*   │                     │                            │
+│                      HistoryRepository  │                                  │                     │                            │
+│          mapper/  DTO ↔ domain          │                                  │                     │                            │
+│          remote/  AuraApi, Network, DTO, safeApiCall ──────────────────────┼───────────────────► │                            │
+│          local/   Room: AuraDatabase, HistoryDao, HistoryEntity            │                     │                            │
+│ AuraApplication — composition root (створює реалізації, передає інтерфейси)│                     │                            │
+└────────────────────────────────────────────────────────────────────────────┘                     └────────────────────────────┘
 ```
 
-## Mobile (`mobile/app/src/main/java/com/aurawallet/app/`)
-| Файл | Відповідальність |
+## Mobile (`mobile/app/src/main/java/com/aurawallet/app/`) — після ЛР5
+Залежності йдуть лише вниз: `ui → domain ← data`. `domain` не імпортує Android, Retrofit, Room чи Compose.
+
+| Шар / файл | Відповідальність |
 |---|---|
-| `MainActivity.kt` | точка входу; простий стан екрана main → history → details (`rememberSaveable` + `BackHandler`) |
-| `AuraApplication.kt` | контейнер залежностей: `AuraDatabase`, `HistoryRepository`, `TransactionRepository` (ЛР4) |
-| `ui/HistoryScreen.kt` | ЛР4: список історії (завантаження, порожній стан, статуси), підтвердження видалення/очищення, екран деталей |
-| `ui/HistoryViewModel.kt` | ЛР4: Flow записів, видалення, очищення, ручне «Надіслати» для «очікує» |
-| `data/local/HistoryEntity.kt`, `HistoryDao.kt`, `AuraDatabase.kt` | ЛР4: таблиця `history`, запити Room, база `aura.db` |
-| `data/HistoryRepository.kt` | ЛР4: доменна `HistoryRecord`, мапінг Entity ↔ домен, операції історії окремо від UI |
-| `ui/CategorizeScreen.kt` | весь UI: заголовок зі статусом сервера, поле вводу, приклади, картки Loading/Result/Error, список збережених |
-| `ui/CategorizeViewModel.kt` | стан екрана (`ResultState`: Idle/Loading/Success/Error), валідація, повтор; успіх → запис в історію, «Зберегти» → підтвердження запису |
-| `data/AuraApi.kt` | Retrofit-інтерфейс, `Network` (OkHttp, тайм-аути 5/10 с, `X-API-Key`), `Json { ignoreUnknownKeys }` |
-| `data/ApiModels.kt` | DTO, що дзеркалять Pydantic-моделі |
-| `data/Models.kt` | доменні моделі (`Categorization`, `SavedTransaction`, `AppError`) |
-| `data/TransactionRepository.kt` | виклики API → `Result<T>`; IOException/HttpException/SerializationException → `AppError` |
+| `MainActivity.kt` | точка входу; стан екрана main → history → details (`rememberSaveable` + `BackHandler`) |
+| `AuraApplication.kt` | **composition root**: створює `RemoteCategorizationRepository`, `FakeCategorizationRepository`, `SwitchableCategorizationRepository`, `RemoteBudgetRepository`, `HistoryRepository`, `CategorizeTransactionUseCase`; ViewModel отримують їх через `viewModelFactory` як інтерфейси |
+| `ui/CategorizeScreen.kt` | UI головного екрана; лише відображає стан і передає дії у ViewModel; debug-картка «Демо-режим» |
+| `ui/CategorizeViewModel.kt` | UI-стан (`ResultState`: Idle / Loading / Success / Error, окрема дія `retry()`), статус сервера, бюджет, черга офлайн-запитів; залежить від `CategorizeTransactionUseCase` та інтерфейсів domain |
+| `ui/HistoryScreen.kt`, `ui/HistoryViewModel.kt` | історія (ЛР4); надсилання «очікує» через `CategorizationRepository` + `InputValidator` |
+| `domain/model/` | `Categorization`, `CategorizationInput`, `SavedTransaction`, `BudgetSummary`; `AppError` (Validation / Network / Timeout / BadResponse / Server / Unknown), `AppErrorException`, `toAppError()` |
+| `domain/repository/Repositories.kt` | інтерфейси `CategorizationRepository`, `BudgetRepository`, `HistoryStore`, `DataSourceSwitch` |
+| `domain/usecase/InputValidator.kt` | правила введення (порожньо, < 2 символів, > 200, без літер) |
+| `domain/usecase/CategorizeTransactionUseCase.kt` | сценарій: валідація → репозиторій → запис успіху в історію; збій запису в історію не ховає результат |
+| `data/remote/` | `AuraApi` (Retrofit), `Network` (OkHttp, тайм-аути, `X-API-Key`), DTO, `safeApiCall` — технічні винятки → `AppError` |
+| `data/mapper/Mappers.kt` | DTO ↔ domain (`toDomain()`, `toDto()`, `toBudgetItems()`) |
+| `data/repository/RemoteRepositories.kt` | `RemoteCategorizationRepository`, `RemoteBudgetRepository` (реальні) |
+| `data/repository/FakeCategorizationRepository.kt` | друга реалізація: ключові слова, без мережі; «помилка» імітує збій |
+| `data/repository/SwitchableCategorizationRepository.kt` | debug-перемикач real ↔ fake (ЛР5, контрольне розширення) |
+| `data/repository/HistoryRepository.kt`, `data/local/*` | Room-історія (ЛР4), реалізує `HistoryStore` |
 | `ui/theme/Theme.kt` | токени кольору Aura (light/dark), шрифт Geist |
 
-Конфігурація: `BuildConfig.API_BASE_URL`, `BuildConfig.API_KEY` з `local.properties` (`aura.apiBaseUrl`, `aura.apiKey`).
+Конфігурація: `BuildConfig.API_BASE_URL`, `BuildConfig.API_KEY` з `local.properties` (`aura.apiBaseUrl`, `aura.apiKey`) — читаються лише в `data/remote/AuraApi.kt`.
+
+### Обробка помилок
+| Технічна причина | Де перетворюється | `AppError` | Що бачить користувач |
+|---|---|---|---|
+| порожній / некоректний текст | `InputValidator` | `Validation` | текст під полем, запит не йде |
+| `SocketTimeoutException` | `safeApiCall` | `Timeout` | «Сервер не відповів вчасно» + Повторити + «Зберегти запит…» |
+| інший `IOException` | `safeApiCall` | `Network` | «Немає з'єднання…» + Повторити + «Зберегти запит…» |
+| HTTP з `{"error":…}` | `safeApiCall` | `Server(message, code)` | повідомлення backend |
+| битий JSON | `safeApiCall` | `BadResponse` | «Незрозуміла відповідь» |
+| будь-що інше | `safeApiCall` / `toAppError()` | `Unknown` | «Щось пішло не так» |
 
 ## Backend (`backend/app/`)
 | Файл | Відповідальність |
@@ -55,7 +72,7 @@
 
 ## Потік даних
 1. UI → `vm.submit()` → валідація (порожньо / лише цифри → помилка під полем, запит не йде).
-2. `repository.categorize(text)` → `POST {text, locale}`.
+2. `CategorizeTransactionUseCase(text)` → `CategorizationRepository.categorize(CategorizationInput)` → (`Remote…`) `POST {text, locale}`.
 3. Backend: Pydantic-валідація → `parse` → `classifier.predict(cleaned_text)` → якщо `confidence < AI_MIN_CONFIDENCE` → `other` + `low_confidence`.
 4. JSON → `CategorizeResponseDto.toDomain()` → `ResultState.Success` → картка результату.
 5. Успіх (HTTP 200 + розібраний JSON) → `history.addDone()` пише запис `DONE` у Room; помилки не пишуться.
@@ -63,7 +80,7 @@
 
 ## Відмінності від архітектури ЛР1
 - Додано власний backend з AI (у ЛР1 були лише Monobank і Firebase).
-- Немає окремого доменного шару (use cases) і Hilt: ViewModel → Repository напряму.
+- Доменний шар (use case + інтерфейси) з'явився в ЛР5 для сценарію розпізнавання; DI — ручний (composition root), без Hilt.
 - Room з'явився в ЛР4 лише для історії запитів (без синхронізації з сервером).
 
 ## Локальні дані (ЛР4)
