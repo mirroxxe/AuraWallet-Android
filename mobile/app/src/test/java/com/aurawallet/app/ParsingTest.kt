@@ -4,7 +4,7 @@ import com.aurawallet.app.data.CategorizeResponseDto
 import com.aurawallet.app.data.ErrorEnvelopeDto
 import com.aurawallet.app.data.Network
 import com.aurawallet.app.data.toDomain
-import com.aurawallet.app.ui.CategorizeViewModel
+import com.aurawallet.app.domain.usecase.InputValidator
 import kotlinx.serialization.SerializationException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -38,8 +38,8 @@ class ParsingTest {
 
     @Test
     fun validation() {
-        assertNotNull(CategorizeViewModel.validate(""))
-        assertNotNull(CategorizeViewModel.validate("12345"))
-        assertNull(CategorizeViewModel.validate("кава 85"))
+        assertNotNull(InputValidator.validate(""))
+        assertNotNull(InputValidator.validate("12345"))
+        assertNull(InputValidator.validate("кава 85"))
     }
 }

@@ -1,6 +1,9 @@
 package com.aurawallet.app.data
 
 import com.aurawallet.app.data.local.HistoryDao
+import com.aurawallet.app.domain.model.Categorization
+import com.aurawallet.app.domain.model.SavedTransaction
+import com.aurawallet.app.domain.repository.HistoryStore
 import com.aurawallet.app.data.local.HistoryEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -81,24 +84,24 @@ fun HistoryRecord.toSavedTransaction(): SavedTransaction? {
 }
 
 /** Операції над локальною історією, відокремлені від UI. */
-class HistoryRepository(private val dao: HistoryDao, private val clock: () -> Long = System::currentTimeMillis) {
+class HistoryRepository(private val dao: HistoryDao, private val clock: () -> Long = System::currentTimeMillis) : HistoryStore {
 
     fun observeAll(): Flow<List<HistoryRecord>> = dao.observeAll().map { list -> list.map { it.toRecord() } }
 
     fun observe(id: Long): Flow<HistoryRecord?> = dao.observeOne(id).map { it?.toRecord() }
 
     /** Підтверджені користувачем операції — джерело для бюджету (ЛР3). */
-    fun observeConfirmed(): Flow<List<SavedTransaction>> =
+    override fun observeConfirmed(): Flow<List<SavedTransaction>> =
         dao.observeConfirmed().map { list -> list.mapNotNull { it.toRecord().toSavedTransaction() } }
 
     /** Зберігає лише успішний результат AI зі статусом «готово». Повертає id запису. */
-    suspend fun addDone(input: String, result: Categorization): Long = dao.insert(result.toEntity(input, clock()))
+    override suspend fun addDone(input: String, result: Categorization): Long = dao.insert(result.toEntity(input, clock()))
 
     /** Підвищений рівень: запит без мережі зі статусом «очікує» (лише текст запиту). */
-    suspend fun addPending(input: String): Long =
+    override suspend fun addPending(input: String): Long =
         dao.insert(HistoryEntity(createdAt = clock(), inputText = input, status = HistoryStatus.PENDING.name))
 
-    suspend fun confirm(id: Long, category: String, label: String) {
+    override suspend fun confirm(id: Long, category: String, label: String) {
         val e = dao.get(id) ?: return
         dao.update(e.copy(confirmed = true, chosenCategory = category, chosenLabel = label))
     }

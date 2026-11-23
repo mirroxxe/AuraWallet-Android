@@ -1,6 +1,5 @@
 package com.aurawallet.app
 
-import com.aurawallet.app.data.AppError
 import com.aurawallet.app.data.AuraApi
 import com.aurawallet.app.data.BudgetSummaryRequestDto
 import com.aurawallet.app.data.BudgetSummaryResponseDto
@@ -8,8 +7,10 @@ import com.aurawallet.app.data.CategorizeRequestDto
 import com.aurawallet.app.data.CategorizeResponseDto
 import com.aurawallet.app.data.HealthDto
 import com.aurawallet.app.data.TransactionRepository
-import com.aurawallet.app.data.toAppError
-import com.aurawallet.app.ui.CategorizeViewModel
+import com.aurawallet.app.domain.model.AppError
+import com.aurawallet.app.domain.model.CategorizationInput
+import com.aurawallet.app.domain.model.toAppError
+import com.aurawallet.app.domain.usecase.InputValidator
 import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -34,7 +35,7 @@ class RegressionTest {
     }
 
     private fun categorizeWith(error: Throwable): AppError =
-        runBlocking { TransactionRepository(ThrowingApi(error)).categorize("кава 85").exceptionOrNull()!!.toAppError() }
+        runBlocking { TransactionRepository(ThrowingApi(error)).categorize(CategorizationInput("кава 85")).exceptionOrNull()!!.toAppError() }
 
     private fun http(code: Int, body: String) =
         HttpException(Response.error<Any>(code, body.toResponseBody("application/json".toMediaType())))
@@ -61,9 +62,9 @@ class RegressionTest {
 
     @Test
     fun validationMessagesAreStable() {
-        assertEquals("Введіть опис операції", CategorizeViewModel.validate("  "))
-        assertEquals("Опис занадто короткий", CategorizeViewModel.validate("а"))
-        assertEquals("Додайте хоча б одне слово, напр. «кава 85»", CategorizeViewModel.validate("12345"))
-        assertEquals(null, CategorizeViewModel.validate("Кава в Aroma Kava 85 грн"))
+        assertEquals("Введіть опис операції", InputValidator.validate("  ")?.userMessage)
+        assertEquals("Опис занадто короткий", InputValidator.validate("а")?.userMessage)
+        assertEquals("Додайте хоча б одне слово, напр. «кава 85»", InputValidator.validate("12345")?.userMessage)
+        assertEquals(null, InputValidator.validate("Кава в Aroma Kava 85 грн")?.userMessage)
     }
 }

@@ -81,10 +81,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.aurawallet.app.data.AppError
-import com.aurawallet.app.data.BudgetSummary
-import com.aurawallet.app.data.Categorization
-import com.aurawallet.app.data.SavedTransaction
+import com.aurawallet.app.domain.model.AppError
+import com.aurawallet.app.domain.model.BudgetSummary
+import com.aurawallet.app.domain.model.Categorization
+import com.aurawallet.app.domain.model.SavedTransaction
 import com.aurawallet.app.ui.theme.Aura
 import java.text.NumberFormat
 import java.util.Locale
@@ -442,7 +442,8 @@ private fun ErrorCard(error: AppError, onRetry: () -> Unit, onQueue: () -> Unit)
                     when (error) {
                         is AppError.Server -> "Не вдалося розпізнати"
                         AppError.BadResponse -> "Незрозуміла відповідь"
-                        else -> "Немає з'єднання"
+                        AppError.Network, AppError.Timeout -> "Немає з'єднання"
+                        else -> "Помилка"
                     },
                     style = MaterialTheme.typography.titleMedium, color = c.ink,
                 )
@@ -458,7 +459,7 @@ private fun ErrorCard(error: AppError, onRetry: () -> Unit, onQueue: () -> Unit)
                 Spacer(Modifier.width(8.dp))
                 Text("Повторити", style = MaterialTheme.typography.labelLarge)
             }
-            if (error is AppError.Network || error is AppError.Timeout) {
+            if (error.isConnectivity) {
                 TextButton(onClick = onQueue, modifier = Modifier.fillMaxWidth()) {
                     Text("Зберегти запит і надіслати пізніше", color = c.ink)
                 }

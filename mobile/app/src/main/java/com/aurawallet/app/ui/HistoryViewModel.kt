@@ -9,8 +9,10 @@ import com.aurawallet.app.AuraApplication
 import com.aurawallet.app.data.HistoryRecord
 import com.aurawallet.app.data.HistoryRepository
 import com.aurawallet.app.data.HistoryStatus
-import com.aurawallet.app.data.TransactionRepository
-import com.aurawallet.app.data.toAppError
+import com.aurawallet.app.domain.model.CategorizationInput
+import com.aurawallet.app.domain.model.toAppError
+import com.aurawallet.app.domain.repository.CategorizationRepository
+import com.aurawallet.app.domain.usecase.InputValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +25,7 @@ import kotlinx.coroutines.launch
 /** ЛР4: історія запитів, деталі, видалення, ручне надсилання «очікує». */
 class HistoryViewModel(
     private val history: HistoryRepository,
-    private val transactions: TransactionRepository,
+    private val categorization: CategorizationRepository,
 ) : ViewModel() {
 
     /** null — дані ще завантажуються з Room. */
@@ -44,11 +46,13 @@ class HistoryViewModel(
     fun record(id: Long): Flow<HistoryRecord?> = history.observe(id)
 
     fun send(record: HistoryRecord) {
-        if (record.status != HistoryStatus.PENDING || !inFlight.add(record.id)) return
+        if (record.status != HistoryStatus.PENDING) return
+        InputValidator.validate(record.inputText)?.let { invalid -> _message.update { invalid.userMessage }; return }
+        if (!inFlight.add(record.id)) return
         viewModelScope.launch {
             try {
                 if (!history.startSending(record.id)) return@launch   // уже надсилається або готовий
-                transactions.categorize(record.inputText)
+                categorization.categorize(CategorizationInput(record.inputText))
                     .onSuccess { r ->
                         history.completeSending(record.id, r)
                         _message.update { "Готово: «${record.inputText}» → ${r.label}" }
@@ -73,7 +77,7 @@ class HistoryViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as AuraApplication
-                HistoryViewModel(app.history, app.transactions)
+                HistoryViewModel(app.history, app.categorization)
             }
         }
     }

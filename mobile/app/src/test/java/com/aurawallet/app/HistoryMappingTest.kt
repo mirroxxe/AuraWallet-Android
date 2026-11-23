@@ -1,6 +1,6 @@
 package com.aurawallet.app
 
-import com.aurawallet.app.data.Categorization
+import com.aurawallet.app.domain.model.Categorization
 import com.aurawallet.app.data.HistoryStatus
 import com.aurawallet.app.data.local.HistoryEntity
 import com.aurawallet.app.data.toEntity

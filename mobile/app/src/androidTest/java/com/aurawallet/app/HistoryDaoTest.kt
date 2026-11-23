@@ -3,7 +3,7 @@ package com.aurawallet.app
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.aurawallet.app.data.Categorization
+import com.aurawallet.app.domain.model.Categorization
 import com.aurawallet.app.data.HistoryRepository
 import com.aurawallet.app.data.HistoryStatus
 import com.aurawallet.app.data.local.AuraDatabase

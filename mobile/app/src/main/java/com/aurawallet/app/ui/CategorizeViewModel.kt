@@ -6,13 +6,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.aurawallet.app.AuraApplication
-import com.aurawallet.app.data.AppError
-import com.aurawallet.app.data.BudgetSummary
-import com.aurawallet.app.data.Categorization
-import com.aurawallet.app.data.HistoryRepository
-import com.aurawallet.app.data.SavedTransaction
-import com.aurawallet.app.data.TransactionRepository
-import com.aurawallet.app.data.toAppError
+import com.aurawallet.app.domain.model.AppError
+import com.aurawallet.app.domain.model.BudgetSummary
+import com.aurawallet.app.domain.model.Categorization
+import com.aurawallet.app.domain.model.SavedTransaction
+import com.aurawallet.app.domain.model.toAppError
+import com.aurawallet.app.domain.repository.BudgetRepository
+import com.aurawallet.app.domain.repository.CategorizationRepository
+import com.aurawallet.app.domain.repository.HistoryStore
+import com.aurawallet.app.domain.usecase.CategorizeTransactionUseCase
+import com.aurawallet.app.domain.usecase.InputValidator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,9 +63,15 @@ data class CategorizeUiState(
     val canSubmit: Boolean get() = input.isNotBlank() && result !is ResultState.Loading
 }
 
+/**
+ * Presentation-логіка головного екрана. Залежності приходять через конструктор (DI):
+ * лише use case та інтерфейси domain — без Retrofit, Room і BuildConfig.
+ */
 class CategorizeViewModel(
-    private val repository: TransactionRepository,
-    private val history: HistoryRepository,
+    private val categorize: CategorizeTransactionUseCase,
+    private val categorization: CategorizationRepository,
+    private val budgets: BudgetRepository,
+    private val history: HistoryStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CategorizeUiState())
@@ -85,7 +94,7 @@ class CategorizeViewModel(
     fun checkServer() {
         _state.update { it.copy(server = ServerStatus.Checking) }
         viewModelScope.launch {
-            val up = repository.isServerUp()
+            val up = categorization.isAvailable()
             _state.update { it.copy(server = if (up) ServerStatus.Online else ServerStatus.Offline) }
         }
     }
@@ -102,27 +111,25 @@ class CategorizeViewModel(
     /** Відправляє запит. Порожні дані не надсилаються; повторний виклик скасовує попередній запит. */
     fun submit() {
         val text = _state.value.input.trim()
-        val validation = validate(text)
-        if (validation != null) {
-            _state.update { it.copy(inputError = validation) }
+        // Швидка перевірка до показу Loading; той самий валідатор повторно спрацює в use case.
+        InputValidator.validate(text)?.let { invalid ->
+            _state.update { it.copy(inputError = invalid.userMessage) }
             return
         }
         request?.cancel()
         _state.update { it.copy(result = ResultState.Loading, inputError = null) }
         request = viewModelScope.launch {
-            repository.categorize(text)
-                .onSuccess { r ->
-                    // ЛР4: у локальну історію потрапляє лише успішно розібрана відповідь AI.
-                    val id = runCatching { history.addDone(text, r) }.getOrNull()
-                    _state.update { it.copy(result = ResultState.Success(r, r.category, r.label, id), server = ServerStatus.Online) }
+            categorize(text)
+                .onSuccess { entry ->
+                    val r = entry.result
+                    _state.update { it.copy(result = ResultState.Success(r, r.category, r.label, entry.recordId), server = ServerStatus.Online) }
                 }
                 .onFailure { e ->
-                    val error = e.toAppError()
-                    _state.update {
-                        it.copy(
-                            result = ResultState.Error(error),
-                            server = if (error is AppError.Network || error is AppError.Timeout) ServerStatus.Offline else it.server,
-                        )
+                    when (val error = e.toAppError()) {
+                        is AppError.Validation -> _state.update { it.copy(result = ResultState.Idle, inputError = error.userMessage) }
+                        else -> _state.update {
+                            it.copy(result = ResultState.Error(error), server = if (error.isConnectivity) ServerStatus.Offline else it.server)
+                        }
                     }
                 }
         }
@@ -148,9 +155,9 @@ class CategorizeViewModel(
     /** ЛР4, підвищений рівень: без мережі зберегти запит як «очікує», щоб надіслати пізніше з історії. */
     fun queueOffline() {
         val text = _state.value.input.trim()
-        if (validate(text) != null) return
+        if (InputValidator.validate(text) != null) return
         val err = (_state.value.result as? ResultState.Error)?.error
-        if (err !is AppError.Network && err !is AppError.Timeout) return
+        if (err == null || !err.isConnectivity) return
         _state.update { it.copy(input = "", result = ResultState.Idle, notice = "Запит збережено в історії зі статусом «очікує»") }
         viewModelScope.launch { history.addPending(text) }
     }
@@ -183,7 +190,7 @@ class CategorizeViewModel(
         budgetRequest?.cancel()
         _state.update { it.copy(budget = BudgetState.Loading) }
         budgetRequest = viewModelScope.launch {
-            repository.budgetSummary(snapshot.monthlyBudget, snapshot.saved)
+            budgets.summary(snapshot.monthlyBudget, snapshot.saved)
                 .onSuccess { b -> _state.update { it.copy(budget = BudgetState.Ready(b)) } }
                 .onFailure { e -> _state.update { it.copy(budget = BudgetState.Error(e.toAppError())) } }
         }
@@ -199,21 +206,14 @@ class CategorizeViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as AuraApplication
-                CategorizeViewModel(app.transactions, app.history)
+                CategorizeViewModel(app.categorizeUseCase, app.categorization, app.budgets, app.history)
             }
         }
 
-        const val MAX_LENGTH = 200
+        const val MAX_LENGTH = InputValidator.MAX_LENGTH
         const val DEFAULT_BUDGET = 18_000.0  // як у iOS-версії
 
         fun parseBudget(text: String): Double? =
             text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 && it <= 10_000_000 }
-
-        fun validate(text: String): String? = when {
-            text.isBlank() -> "Введіть опис операції"
-            text.length < 2 -> "Опис занадто короткий"
-            text.none { it.isLetter() } -> "Додайте хоча б одне слово, напр. «кава 85»"
-            else -> null
-        }
     }
 }
