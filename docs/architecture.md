@@ -9,15 +9,25 @@
 │ TransactionRepository (мапінг помилок)     │                         │ ai/classifier.py TF-IDF + LogisticRegression│
 │   ↓                                        │ ◄────────────────────── │ config.py    змінні середовища             │
 │ AuraApi (Retrofit + OkHttp + kotlinx.ser.) │   CategorizeResponse    │                                            │
+│                                            │                         │                                            │
+│ HistoryScreen / HistoryDetailsScreen (ЛР4) │                         │                                            │
+│ HistoryViewModel → HistoryRepository       │                         │                                            │
+│   ↓ Flow                                   │                         │                                            │
+│ Room: AuraDatabase (aura.db) → HistoryDao  │                         │                                            │
 └────────────────────────────────────────────┘                         └────────────────────────────────────────────┘
 ```
 
 ## Mobile (`mobile/app/src/main/java/com/aurawallet/app/`)
 | Файл | Відповідальність |
 |---|---|
-| `MainActivity.kt` | точка входу, `AuraTheme { CategorizeScreen() }` |
+| `MainActivity.kt` | точка входу; простий стан екрана main → history → details (`rememberSaveable` + `BackHandler`) |
+| `AuraApplication.kt` | контейнер залежностей: `AuraDatabase`, `HistoryRepository`, `TransactionRepository` (ЛР4) |
+| `ui/HistoryScreen.kt` | ЛР4: список історії (завантаження, порожній стан, статуси), підтвердження видалення/очищення, екран деталей |
+| `ui/HistoryViewModel.kt` | ЛР4: Flow записів, видалення, очищення, ручне «Надіслати» для «очікує» |
+| `data/local/HistoryEntity.kt`, `HistoryDao.kt`, `AuraDatabase.kt` | ЛР4: таблиця `history`, запити Room, база `aura.db` |
+| `data/HistoryRepository.kt` | ЛР4: доменна `HistoryRecord`, мапінг Entity ↔ домен, операції історії окремо від UI |
 | `ui/CategorizeScreen.kt` | весь UI: заголовок зі статусом сервера, поле вводу, приклади, картки Loading/Result/Error, список збережених |
-| `ui/CategorizeViewModel.kt` | стан екрана (`ResultState`: Idle/Loading/Success/Error), валідація, повтор, збереження в пам'яті |
+| `ui/CategorizeViewModel.kt` | стан екрана (`ResultState`: Idle/Loading/Success/Error), валідація, повтор; успіх → запис в історію, «Зберегти» → підтвердження запису |
 | `data/AuraApi.kt` | Retrofit-інтерфейс, `Network` (OkHttp, тайм-аути 5/10 с, `X-API-Key`), `Json { ignoreUnknownKeys }` |
 | `data/ApiModels.kt` | DTO, що дзеркалять Pydantic-моделі |
 | `data/Models.kt` | доменні моделі (`Categorization`, `SavedTransaction`, `AppError`) |
@@ -48,9 +58,28 @@
 2. `repository.categorize(text)` → `POST {text, locale}`.
 3. Backend: Pydantic-валідація → `parse` → `classifier.predict(cleaned_text)` → якщо `confidence < AI_MIN_CONFIDENCE` → `other` + `low_confidence`.
 4. JSON → `CategorizeResponseDto.toDomain()` → `ResultState.Success` → картка результату.
-5. «Зберегти» → `SavedTransaction` додається на початок списку (лише в пам'яті).
+5. Успіх (HTTP 200 + розібраний JSON) → `history.addDone()` пише запис `DONE` у Room; помилки не пишуться.
+6. «Зберегти» → `history.confirm(id, обрана категорія)`; список «Збережені» і бюджет читаються з Room (`observeConfirmed()`).
 
 ## Відмінності від архітектури ЛР1
 - Додано власний backend з AI (у ЛР1 були лише Monobank і Firebase).
 - Немає окремого доменного шару (use cases) і Hilt: ViewModel → Repository напряму.
-- Немає Room: дані живуть до закриття застосунку.
+- Room з'явився в ЛР4 лише для історії запитів (без синхронізації з сервером).
+
+## Локальні дані (ЛР4)
+Таблиця `history` (Room, файл `aura.db` у приватній пам'яті застосунку):
+
+| Поле | Тип | Призначення |
+|---|---|---|
+| `id` | Long, autoincrement | ключ |
+| `created_at` | Long (мс) | час результату; сортування DESC |
+| `input_text` | String | текст запиту |
+| `status` | `DONE` / `PENDING` / `SENDING` | готово / очікує / надсилається |
+| `category`, `label`, `confidence`, `low_confidence` | nullable | результат AI |
+| `is_income`, `amount`, `currency`, `merchant` | | розібрана операція |
+| `explanation`, `alternatives` (JSON), `processing_ms` | | деталі результату |
+| `confirmed`, `chosen_category`, `chosen_label` | | користувач натиснув «Зберегти» (і, можливо, змінив категорію) |
+
+Не зберігаються: помилки backend і їхні тексти, HTTP-коди, stack trace, `X-API-Key`, адреса сервера, відповіді, які не вдалося розібрати.
+
+Потік «очікує» (підвищений рівень): помилка мережі/тайм-аут → «Зберегти запит і надіслати пізніше» → `PENDING` → в історії «Надіслати» → атомарний `UPDATE … WHERE status='PENDING'` у `SENDING` (друге натискання повертає 0 рядків і ігнорується) → успіх `DONE` / помилка знову `PENDING`. На старті екрана історії зависле `SENDING` повертається в `PENDING`.
