@@ -1,10 +1,15 @@
 package com.aurawallet.app.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.aurawallet.app.AuraApplication
 import com.aurawallet.app.data.AppError
 import com.aurawallet.app.data.BudgetSummary
 import com.aurawallet.app.data.Categorization
+import com.aurawallet.app.data.HistoryRepository
 import com.aurawallet.app.data.SavedTransaction
 import com.aurawallet.app.data.TransactionRepository
 import com.aurawallet.app.data.toAppError
@@ -19,7 +24,13 @@ import kotlinx.coroutines.launch
 sealed interface ResultState {
     data object Idle : ResultState
     data object Loading : ResultState
-    data class Success(val result: Categorization, val chosenCategory: String, val chosenLabel: String) : ResultState
+    /** [recordId] — id запису в локальній історії (ЛР4), створеного одразу після успішної відповіді. */
+    data class Success(
+        val result: Categorization,
+        val chosenCategory: String,
+        val chosenLabel: String,
+        val recordId: Long? = null,
+    ) : ResultState
     data class Error(val error: AppError) : ResultState
 }
 
@@ -43,12 +54,15 @@ data class CategorizeUiState(
     val budgetInput: String = CategorizeViewModel.DEFAULT_BUDGET.toInt().toString(),
     val budgetInputError: String? = null,
     val budget: BudgetState = BudgetState.Empty,
+    /** Коротке повідомлення внизу екрана, напр. «Запит збережено в черзі». */
+    val notice: String? = null,
 ) {
     val canSubmit: Boolean get() = input.isNotBlank() && result !is ResultState.Loading
 }
 
 class CategorizeViewModel(
-    private val repository: TransactionRepository = TransactionRepository(),
+    private val repository: TransactionRepository,
+    private val history: HistoryRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CategorizeUiState())
@@ -56,9 +70,17 @@ class CategorizeViewModel(
 
     private var request: Job? = null
     private var budgetRequest: Job? = null
-    private var nextId = 1L
 
-    init { checkServer() }
+    init {
+        checkServer()
+        // ЛР4: підтверджені операції читаються з Room, тож список і бюджет переживають перезапуск.
+        viewModelScope.launch {
+            history.observeConfirmed().collect { saved ->
+                _state.update { it.copy(saved = saved) }
+                refreshBudget()
+            }
+        }
+    }
 
     fun checkServer() {
         _state.update { it.copy(server = ServerStatus.Checking) }
@@ -90,7 +112,9 @@ class CategorizeViewModel(
         request = viewModelScope.launch {
             repository.categorize(text)
                 .onSuccess { r ->
-                    _state.update { it.copy(result = ResultState.Success(r, r.category, r.label), server = ServerStatus.Online) }
+                    // ЛР4: у локальну історію потрапляє лише успішно розібрана відповідь AI.
+                    val id = runCatching { history.addDone(text, r) }.getOrNull()
+                    _state.update { it.copy(result = ResultState.Success(r, r.category, r.label, id), server = ServerStatus.Online) }
                 }
                 .onFailure { e ->
                     val error = e.toAppError()
@@ -113,16 +137,25 @@ class CategorizeViewModel(
         }
     }
 
+    /** «Зберегти»: позначає запис історії як підтверджену операцію. Список і бюджет оновляться з Room. */
     fun save() {
         val success = _state.value.result as? ResultState.Success ?: return
-        val r = success.result
-        val tx = SavedTransaction(
-            id = nextId++, text = _state.value.input.trim(), category = success.chosenCategory,
-            label = success.chosenLabel, amount = r.amount, currency = r.currency, isIncome = r.isIncome,
-        )
-        _state.update { it.copy(saved = listOf(tx) + it.saved, input = "", result = ResultState.Idle) }
-        refreshBudget()
+        val id = success.recordId
+        _state.update { it.copy(input = "", result = ResultState.Idle) }
+        if (id != null) viewModelScope.launch { history.confirm(id, success.chosenCategory, success.chosenLabel) }
     }
+
+    /** ЛР4, підвищений рівень: без мережі зберегти запит як «очікує», щоб надіслати пізніше з історії. */
+    fun queueOffline() {
+        val text = _state.value.input.trim()
+        if (validate(text) != null) return
+        val err = (_state.value.result as? ResultState.Error)?.error
+        if (err !is AppError.Network && err !is AppError.Timeout) return
+        _state.update { it.copy(input = "", result = ResultState.Idle, notice = "Запит збережено в історії зі статусом «очікує»") }
+        viewModelScope.launch { history.addPending(text) }
+    }
+
+    fun dismissNotice() = _state.update { it.copy(notice = null) }
 
     // ---------- Бюджет місяця (ЛР3) ----------
 
@@ -162,6 +195,14 @@ class CategorizeViewModel(
     }
 
     companion object {
+        /** Фабрика: залежності беруться з [AuraApplication] (без DI-бібліотеки). */
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as AuraApplication
+                CategorizeViewModel(app.transactions, app.history)
+            }
+        }
+
         const val MAX_LENGTH = 200
         const val DEFAULT_BUDGET = 18_000.0  // як у iOS-версії
 

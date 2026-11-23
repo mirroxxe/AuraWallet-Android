@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.LocalCafe
@@ -97,7 +98,10 @@ private val EXAMPLES = listOf(
 )
 
 @Composable
-fun CategorizeScreen(vm: CategorizeViewModel = viewModel()) {
+fun CategorizeScreen(
+    vm: CategorizeViewModel = viewModel(factory = CategorizeViewModel.Factory),
+    onOpenHistory: () -> Unit = {},
+) {
     val state by vm.state.collectAsStateWithLifecycle()
     val c = Aura.colors
 
@@ -122,7 +126,7 @@ fun CategorizeScreen(vm: CategorizeViewModel = viewModel()) {
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item { Header(state.server, onRetryHealth = vm::checkServer) }
+            item { Header(state.server, onRetryHealth = vm::checkServer, onOpenHistory = onOpenHistory) }
             item {
                 InputCard(
                     value = state.input,
@@ -145,7 +149,19 @@ fun CategorizeScreen(vm: CategorizeViewModel = viewModel()) {
                         ResultState.Idle -> IdleHint()
                         ResultState.Loading -> LoadingCard()
                         is ResultState.Success -> ResultCard(result, onChoose = vm::chooseCategory, onSave = vm::save, onReset = vm::reset)
-                        is ResultState.Error -> ErrorCard(result.error, onRetry = vm::retry)
+                        is ResultState.Error -> ErrorCard(result.error, onRetry = vm::retry, onQueue = vm::queueOffline)
+                    }
+                }
+            }
+            state.notice?.let { notice ->
+                item {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.lilac).padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(notice, style = MaterialTheme.typography.bodyMedium, color = c.ink, modifier = Modifier.weight(1f))
+                        TextButton(onClick = onOpenHistory) { Text("Історія", color = c.ink) }
+                        TextButton(onClick = vm::dismissNotice) { Text("OK", color = c.ink2) }
                     }
                 }
             }
@@ -168,13 +184,18 @@ fun CategorizeScreen(vm: CategorizeViewModel = viewModel()) {
 }
 
 @Composable
-private fun Header(server: ServerStatus, onRetryHealth: () -> Unit) {
+private fun Header(server: ServerStatus, onRetryHealth: () -> Unit, onOpenHistory: () -> Unit) {
     val c = Aura.colors
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text("AI-помічник", style = MaterialTheme.typography.labelMedium, color = c.ink2)
             Text("Нова операція", style = MaterialTheme.typography.headlineLarge, color = c.ink)
         }
+        Box(
+            Modifier.size(44.dp).clip(CircleShape).background(c.surface.copy(alpha = 0.8f)).clickable(onClick = onOpenHistory),
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.Filled.History, contentDescription = "Історія", tint = c.ink) }
+        Spacer(Modifier.width(8.dp))
         val (dot, label) = when (server) {
             ServerStatus.Checking -> c.ink3 to "Перевірка…"
             ServerStatus.Online -> c.positive to "Сервер онлайн"
@@ -407,7 +428,7 @@ private fun ResultCard(
 }
 
 @Composable
-private fun ErrorCard(error: AppError, onRetry: () -> Unit) {
+private fun ErrorCard(error: AppError, onRetry: () -> Unit, onQueue: () -> Unit) {
     val c = Aura.colors
     AuraCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -436,6 +457,11 @@ private fun ErrorCard(error: AppError, onRetry: () -> Unit) {
                 Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Повторити", style = MaterialTheme.typography.labelLarge)
+            }
+            if (error is AppError.Network || error is AppError.Timeout) {
+                TextButton(onClick = onQueue, modifier = Modifier.fillMaxWidth()) {
+                    Text("Зберегти запит і надіслати пізніше", color = c.ink)
+                }
             }
         }
     }
