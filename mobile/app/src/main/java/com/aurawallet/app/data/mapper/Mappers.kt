@@ -5,14 +5,21 @@ import com.aurawallet.app.data.remote.BudgetSummaryResponseDto
 import com.aurawallet.app.data.remote.BudgetTransactionDto
 import com.aurawallet.app.data.remote.CategorizeRequestDto
 import com.aurawallet.app.data.remote.CategorizeResponseDto
+import com.aurawallet.app.data.remote.PersonalExampleDto
 import com.aurawallet.app.domain.model.BudgetSummary
 import com.aurawallet.app.domain.model.Categorization
 import com.aurawallet.app.domain.model.CategorizationInput
+import com.aurawallet.app.domain.model.ConfidenceSource
+import com.aurawallet.app.domain.model.Personalization
 import com.aurawallet.app.domain.model.SavedTransaction
 
 /** Перетворення DTO ↔ доменні моделі. Єдине місце, яке знає і про JSON-формат, і про домен. */
 
-fun CategorizationInput.toDto() = CategorizeRequestDto(text = text.trim(), locale = locale)
+fun CategorizationInput.toDto() = CategorizeRequestDto(
+    text = text.trim(),
+    locale = locale,
+    personalExamples = personalExamples.take(50).map { PersonalExampleDto(it.text, it.category) },
+)
 
 fun CategorizeResponseDto.toDomain() = Categorization(
     category = category,
@@ -26,6 +33,10 @@ fun CategorizeResponseDto.toDomain() = Categorization(
     alternatives = alternatives.map { Categorization.Alternative(it.category, it.label, it.confidence) },
     lowConfidence = lowConfidence,
     processingMs = processingMs,
+    confidenceSource = if (confidenceSource == "personal") ConfidenceSource.Personal else ConfidenceSource.Model,
+    personalization = personalization?.let {
+        Personalization(it.matchedText, it.matchedCategory, it.similarity.coerceIn(0.0, 1.0), it.modelCategory, it.modelLabel)
+    },
 )
 
 fun BudgetSummaryResponseDto.toDomain() = BudgetSummary(

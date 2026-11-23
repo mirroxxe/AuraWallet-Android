@@ -4,6 +4,8 @@ import com.aurawallet.app.domain.model.AppError
 import com.aurawallet.app.domain.model.AppErrorException
 import com.aurawallet.app.domain.model.Categorization
 import com.aurawallet.app.domain.model.CategorizationInput
+import com.aurawallet.app.domain.model.ConfidenceSource
+import com.aurawallet.app.domain.model.Personalization
 import com.aurawallet.app.domain.repository.CategorizationRepository
 import kotlinx.coroutines.delay
 
@@ -30,6 +32,14 @@ class FakeCategorizationRepository(private val delayMs: Long = 400) : Categoriza
         Rule("freelance", "Фриланс", listOf("фриланс", "upwork", "fiverr"), income = true),
     )
 
+    /** Підписи категорій, яких немає серед правил (для персоналізованого результату). */
+    private val extraLabels = mapOf(
+        "housing" to "Житло", "gifts" to "Подарунки", "clothing" to "Одяг", "travel" to "Подорожі",
+        "cashback" to "Кешбек", "other" to "Інше",
+    )
+
+    private fun labelOf(category: String) = rules.firstOrNull { it.category == category }?.label ?: extraLabels[category] ?: category
+
     private val number = Regex("""(\d+(?:[.,]\d+)?)""")
 
     override suspend fun categorize(input: CategorizationInput): Result<Categorization> {
@@ -47,6 +57,21 @@ class FakeCategorizationRepository(private val delayMs: Long = 400) : Categoriza
             else -> "UAH"
         }
         val keyword = rule?.keywords?.first { it in text }
+        personalMatch(text, input)?.let { (example, similarity) ->
+            val modelCategory = rule?.category ?: "other"
+            if (example.category != modelCategory || rule == null) {
+                return Result.success(
+                    Categorization(
+                        category = example.category, label = labelOf(example.category), confidence = similarity, isIncome = false,
+                        amount = amount, currency = currency, merchant = null,
+                        explanation = "Демо-режим: ви раніше віднесли «${example.text}» до цієї категорії.",
+                        alternatives = listOfNotNull(rule?.let { Categorization.Alternative(it.category, it.label, 0.9) }),
+                        lowConfidence = false, processingMs = 0.0, confidenceSource = ConfidenceSource.Personal,
+                        personalization = Personalization(example.text, example.category, similarity, modelCategory, rule?.label ?: "Інше"),
+                    ),
+                )
+            }
+        }
         return Result.success(
             Categorization(
                 category = rule?.category ?: "other",
@@ -63,6 +88,15 @@ class FakeCategorizationRepository(private val delayMs: Long = 400) : Categoriza
             ),
         )
     }
+
+    /** Спрощена персоналізація для демо: частка слів прикладу (без чисел), які є в запиті. */
+    private fun personalMatch(text: String, input: CategorizationInput) = input.personalExamples
+        .map { ex ->
+            val words = ex.text.lowercase().split(' ').filter { w -> w.length >= 3 && w.any(Char::isLetter) }
+            ex to if (words.isEmpty()) 0.0 else words.count { it in text }.toDouble() / words.size
+        }
+        .maxByOrNull { it.second }
+        ?.takeIf { it.second >= 0.5 }
 
     override suspend fun isAvailable(): Boolean = true
 }

@@ -3,6 +3,7 @@ package com.aurawallet.app.domain.repository
 import com.aurawallet.app.domain.model.BudgetSummary
 import com.aurawallet.app.domain.model.Categorization
 import com.aurawallet.app.domain.model.CategorizationInput
+import com.aurawallet.app.domain.model.PersonalExample
 import com.aurawallet.app.domain.model.SavedTransaction
 import kotlinx.coroutines.flow.Flow
 
@@ -29,6 +30,9 @@ interface HistoryStore {
     suspend fun addDone(input: String, result: Categorization): Long
     suspend fun addPending(input: String): Long
     suspend fun confirm(id: Long, category: String, label: String)
+
+    /** ЛР6: останні виправлення користувача (обрана категорія ≠ категорії AI), новіші першими. */
+    suspend fun personalExamples(limit: Int): List<PersonalExample>
 }
 
 /**

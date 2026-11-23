@@ -66,4 +66,17 @@ class HistoryDaoTest {
         repo.confirm(id, "cafes", "Кафе")
         assertEquals("cafes", repo.observeConfirmed().first().single().category)
     }
+
+    @Test fun onlyCorrectionsBecomePersonalExamples() = runBlocking {
+        val corrected = repo.addDone("Епіцентр 640", result("shopping"))
+        val accepted = repo.addDone("кава 85", result("coffee"))
+        repo.addDone("не збережено", result("other"))
+        repo.confirm(corrected, "housing", "Житло")
+        repo.confirm(accepted, "coffee", "Кава")
+        val examples = repo.personalExamples(50)
+        assertEquals(1, examples.size)
+        assertEquals("Епіцентр 640", examples.single().text)
+        assertEquals("housing", examples.single().category)
+    }
 }
+

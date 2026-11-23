@@ -5,6 +5,7 @@ import com.aurawallet.app.domain.model.AppErrorException
 import com.aurawallet.app.domain.model.BudgetSummary
 import com.aurawallet.app.domain.model.Categorization
 import com.aurawallet.app.domain.model.CategorizationInput
+import com.aurawallet.app.domain.model.PersonalExample
 import com.aurawallet.app.domain.model.SavedTransaction
 import com.aurawallet.app.domain.repository.BudgetRepository
 import com.aurawallet.app.domain.repository.CategorizationRepository
@@ -37,7 +38,11 @@ class ScriptedCategorizationRepository(responses: List<Result<Categorization>> =
 fun failure(error: AppError): Result<Categorization> = Result.failure(AppErrorException(error))
 
 /** Історія в пам'яті замість Room. */
-class InMemoryHistoryStore(private val failOnAdd: Boolean = false) : HistoryStore {
+class InMemoryHistoryStore(
+    private val failOnAdd: Boolean = false,
+    var corrections: List<PersonalExample> = emptyList(),
+    private val failOnCorrections: Boolean = false,
+) : HistoryStore {
     val done = mutableListOf<Pair<String, Categorization>>()
     val pending = mutableListOf<String>()
     private val confirmed = MutableStateFlow<List<SavedTransaction>>(emptyList())
@@ -48,6 +53,11 @@ class InMemoryHistoryStore(private val failOnAdd: Boolean = false) : HistoryStor
         if (failOnAdd) throw IllegalStateException("disk full")
         done += input to result
         return done.size.toLong()
+    }
+
+    override suspend fun personalExamples(limit: Int): List<PersonalExample> {
+        if (failOnCorrections) throw IllegalStateException("db closed")
+        return corrections.take(limit)
     }
 
     override suspend fun addPending(input: String): Long {

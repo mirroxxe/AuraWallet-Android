@@ -87,6 +87,7 @@ import com.aurawallet.app.BuildConfig
 import com.aurawallet.app.domain.model.AppError
 import com.aurawallet.app.domain.model.BudgetSummary
 import com.aurawallet.app.domain.model.Categorization
+import com.aurawallet.app.domain.model.ConfidenceSource
 import com.aurawallet.app.domain.model.SavedTransaction
 import com.aurawallet.app.ui.theme.Aura
 import java.text.NumberFormat
@@ -141,6 +142,7 @@ fun CategorizeScreen(
                     onExample = vm::useExample,
                 )
             }
+            item { PersonalizeChip(enabled = state.personalize, onChange = vm::setPersonalize) }
             item {
                 AnimatedContent(
                     targetState = state.result,
@@ -374,7 +376,11 @@ private fun ResultCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row {
-                    Text("Впевненість AI", style = MaterialTheme.typography.labelMedium, color = c.ink2, modifier = Modifier.weight(1f))
+                    Text(
+                        // ЛР6: при персоналізації число — схожість з виправленням, а не ймовірність моделі.
+                        if (r.confidenceSource == ConfidenceSource.Personal) "Схожість з вашою операцією" else "Впевненість AI",
+                        style = MaterialTheme.typography.labelMedium, color = c.ink2, modifier = Modifier.weight(1f),
+                    )
                     Text("${(r.confidence * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, color = c.ink)
                 }
                 LinearProgressIndicator(
@@ -384,6 +390,20 @@ private fun ResultCard(
                     trackColor = c.stone,
                     drawStopIndicator = {},
                 )
+            }
+
+            r.personalization?.let { p ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(c.butter).padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.History, contentDescription = null, tint = c.ink, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Персоналізовано: як «${p.matchedText}». Модель пропонувала «${p.modelLabel}».",
+                        style = MaterialTheme.typography.bodyMedium, color = c.ink,
+                    )
+                }
             }
 
             Text(
@@ -407,7 +427,10 @@ private fun ResultCard(
                         FilterChip(
                             selected = alt.category == state.chosenCategory,
                             onClick = { onChoose(alt.category, alt.label) },
-                            label = { Text("${alt.label} · ${(alt.confidence * 100).toInt()}%") },
+                            label = {
+                                val personalChoice = r.confidenceSource == ConfidenceSource.Personal && alt.category == r.category
+                                Text(if (personalChoice) "${alt.label} · ваш вибір" else "${alt.label} · ${(alt.confidence * 100).toInt()}%")
+                            },
                             leadingIcon = { Icon(categoryIcon(alt.category), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             shape = CircleShape,
                             colors = FilterChipDefaults.filterChipColors(
@@ -707,4 +730,21 @@ private fun DataSourceCard(demo: Boolean, onChange: (Boolean) -> Unit) {
             )
         }
     }
+}
+
+/** ЛР6: вмикає/вимикає персоналізацію за власними виправленнями. */
+@Composable
+private fun PersonalizeChip(enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val c = Aura.colors
+    FilterChip(
+        selected = enabled,
+        onClick = { onChange(!enabled) },
+        label = { Text(if (enabled) "Враховувати мої виправлення" else "Без персоналізації") },
+        leadingIcon = { Icon(Icons.Filled.History, contentDescription = null, modifier = Modifier.size(16.dp)) },
+        shape = CircleShape,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = c.ink, selectedLabelColor = c.onInk, selectedLeadingIconColor = c.onInk,
+            containerColor = c.stone, labelColor = c.ink, iconColor = c.ink,
+        ),
+    )
 }

@@ -62,6 +62,8 @@ data class CategorizeUiState(
     val notice: String? = null,
     /** ЛР5: увімкнено демо-джерело (fake repository) замість backend. */
     val demoMode: Boolean = false,
+    /** ЛР6: надсилати власні виправлення як контекст для AI. */
+    val personalize: Boolean = true,
 ) {
     val canSubmit: Boolean get() = input.isNotBlank() && result !is ResultState.Loading
 }
@@ -111,6 +113,8 @@ class CategorizeViewModel(
 
     fun setDemoMode(enabled: Boolean) = dataSource.setDemo(enabled)
 
+    fun setPersonalize(enabled: Boolean) = _state.update { it.copy(personalize = enabled) }
+
     fun onInputChange(value: String) {
         _state.update { it.copy(input = value.take(MAX_LENGTH), inputError = null) }
     }
@@ -131,7 +135,7 @@ class CategorizeViewModel(
         request?.cancel()
         _state.update { it.copy(result = ResultState.Loading, inputError = null) }
         request = viewModelScope.launch {
-            categorize(text)
+            categorize(text, personalize = _state.value.personalize)
                 .onSuccess { entry ->
                     val r = entry.result
                     _state.update { it.copy(result = ResultState.Success(r, r.category, r.label, entry.recordId), server = ServerStatus.Online) }

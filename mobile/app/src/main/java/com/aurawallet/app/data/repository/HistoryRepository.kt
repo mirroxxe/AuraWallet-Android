@@ -2,6 +2,7 @@ package com.aurawallet.app.data.repository
 
 import com.aurawallet.app.data.local.HistoryDao
 import com.aurawallet.app.domain.model.Categorization
+import com.aurawallet.app.domain.model.PersonalExample
 import com.aurawallet.app.domain.model.SavedTransaction
 import com.aurawallet.app.domain.repository.HistoryStore
 import com.aurawallet.app.data.local.HistoryEntity
@@ -104,6 +105,9 @@ class HistoryRepository(private val dao: HistoryDao, private val clock: () -> Lo
     /** Підвищений рівень: запит без мережі зі статусом «очікує» (лише текст запиту). */
     override suspend fun addPending(input: String): Long =
         dao.insert(HistoryEntity(createdAt = clock(), inputText = input, status = HistoryStatus.PENDING.name))
+
+    override suspend fun personalExamples(limit: Int): List<PersonalExample> =
+        dao.corrections(limit).mapNotNull { e -> e.chosenCategory?.let { PersonalExample(e.inputText, it) } }
 
     override suspend fun confirm(id: Long, category: String, label: String) {
         val e = dao.get(id) ?: return

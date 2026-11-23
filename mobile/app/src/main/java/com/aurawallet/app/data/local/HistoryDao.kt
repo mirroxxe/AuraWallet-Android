@@ -21,6 +21,13 @@ interface HistoryDao {
     @Query("SELECT * FROM history WHERE confirmed = 1 AND status = 'DONE' ORDER BY created_at DESC, id DESC")
     fun observeConfirmed(): Flow<List<HistoryEntity>>
 
+    /** ЛР6: виправлення користувача — підтверджені записи, де обрана категорія відрізняється від AI. */
+    @Query(
+        "SELECT * FROM history WHERE status = 'DONE' AND confirmed = 1 AND chosen_category IS NOT NULL " +
+            "AND chosen_category != category ORDER BY created_at DESC, id DESC LIMIT :limit",
+    )
+    suspend fun corrections(limit: Int): List<HistoryEntity>
+
     @Insert
     suspend fun insert(entity: HistoryEntity): Long
 
