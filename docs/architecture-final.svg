@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 760" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2b2b2b"/></marker>
+  </defs>
+  <rect width="1300" height="760" fill="#fbf9f6"/>
+  <text x="40" y="44" font-size="24" font-weight="700" fill="#1c1c1c">AuraWallet Android — фінальна архітектура (ЛР7)</text>
+  <text x="40" y="70" font-size="14" fill="#6b6b6b">Android-клієнт + локальний FastAPI backend з AI · дані користувача лише на пристрої</text>
+
+  <!-- Android -->
+  <rect x="40" y="95" width="610" height="625" rx="22" fill="#f3eefb" stroke="#d9cfee"/>
+  <text x="64" y="128" font-size="18" font-weight="700" fill="#1c1c1c">Android (mobile/) · Kotlin, Compose</text>
+
+  <rect x="64" y="145" width="562" height="110" rx="14" fill="#ffffff" stroke="#e2dcd2"/>
+  <text x="82" y="171" font-size="14" font-weight="700" fill="#1c1c1c">ui/ — presentation</text>
+  <text x="82" y="195" font-size="13" fill="#3d3d3d">CategorizeScreen · HistoryScreen · HistoryDetailsScreen</text>
+  <text x="82" y="216" font-size="13" fill="#3d3d3d">CategorizeViewModel (Idle / Loading / Success / Error, retry)</text>
+  <text x="82" y="237" font-size="13" fill="#3d3d3d">HistoryViewModel · чипи «Мої виправлення», «Демо-режим»</text>
+
+  <rect x="64" y="275" width="562" height="125" rx="14" fill="#fff6d9" stroke="#eadfb7"/>
+  <text x="82" y="301" font-size="14" font-weight="700" fill="#1c1c1c">domain/ — без Android, Retrofit, Room</text>
+  <text x="82" y="325" font-size="13" fill="#3d3d3d">usecase: CategorizeTransactionUseCase, InputValidator</text>
+  <text x="82" y="346" font-size="13" fill="#3d3d3d">repository (інтерфейси): CategorizationRepository, BudgetRepository,</text>
+  <text x="82" y="365" font-size="13" fill="#3d3d3d">HistoryStore, DataSourceSwitch</text>
+  <text x="82" y="386" font-size="13" fill="#3d3d3d">model: Categorization, AppError, PersonalExample …</text>
+
+  <rect x="64" y="420" width="562" height="160" rx="14" fill="#ffffff" stroke="#e2dcd2"/>
+  <text x="82" y="446" font-size="14" font-weight="700" fill="#1c1c1c">data/</text>
+  <text x="82" y="470" font-size="13" fill="#3d3d3d">repository: Remote…Repository · Fake…Repository · Switchable…</text>
+  <text x="82" y="491" font-size="13" fill="#3d3d3d">mapper: DTO ↔ domain</text>
+  <text x="82" y="512" font-size="13" fill="#3d3d3d">remote: Retrofit AuraApi, OkHttp (тайм-аути 5/10 с), safeApiCall → AppError</text>
+  <text x="82" y="533" font-size="13" fill="#3d3d3d">local: Room aura.db — історія, підтверджені операції, виправлення</text>
+  <text x="82" y="560" font-size="12" fill="#6b6b6b">AuraApplication — composition root (constructor injection)</text>
+
+  <rect x="64" y="600" width="270" height="96" rx="14" fill="#fbe6e6" stroke="#ecc9c9"/>
+  <text x="82" y="628" font-size="14" font-weight="700" fill="#1c1c1c">Room (SQLite)</text>
+  <text x="82" y="651" font-size="13" fill="#3d3d3d">history: DONE / PENDING / SENDING</text>
+  <text x="82" y="672" font-size="13" fill="#3d3d3d">chosen_category → виправлення</text>
+
+  <rect x="356" y="600" width="270" height="96" rx="14" fill="#e9f3e6" stroke="#cfe2c9"/>
+  <text x="374" y="628" font-size="14" font-weight="700" fill="#1c1c1c">Fake (демо, debug)</text>
+  <text x="374" y="651" font-size="13" fill="#3d3d3d">ключові слова, без мережі;</text>
+  <text x="374" y="672" font-size="13" fill="#3d3d3d">«помилка» → імітація збою</text>
+
+  <!-- arrows inside android -->
+  <line x1="345" y1="255" x2="345" y2="273" stroke="#2b2b2b" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="345" y1="418" x2="345" y2="402" stroke="#2b2b2b" stroke-width="2" marker-end="url(#a)"/>
+  <text x="355" y="414" font-size="11" fill="#6b6b6b">реалізує</text>
+  <line x1="200" y1="580" x2="200" y2="598" stroke="#2b2b2b" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="490" y1="580" x2="490" y2="598" stroke="#2b2b2b" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Backend -->
+  <rect x="850" y="95" width="410" height="625" rx="22" fill="#eef4ec" stroke="#cfe2c9"/>
+  <text x="874" y="128" font-size="18" font-weight="700" fill="#1c1c1c">Backend (backend/) · FastAPI, локально</text>
+
+  <rect x="874" y="145" width="362" height="92" rx="14" fill="#ffffff" stroke="#e2dcd2"/>
+  <text x="892" y="171" font-size="14" font-weight="700" fill="#1c1c1c">main.py · schemas.py</text>
+  <text x="892" y="194" font-size="13" fill="#3d3d3d">Pydantic-валідація → 422 validation_error</text>
+  <text x="892" y="215" font-size="13" fill="#3d3d3d">{"error":{code,message,field}} · 503 ai_unavailable</text>
+
+  <rect x="874" y="255" width="362" height="70" rx="14" fill="#ffffff" stroke="#e2dcd2"/>
+  <text x="892" y="281" font-size="14" font-weight="700" fill="#1c1c1c">service.py</text>
+  <text x="892" y="304" font-size="13" fill="#3d3d3d">categorize() · budget_summary()</text>
+
+  <rect x="874" y="345" width="362" height="250" rx="14" fill="#fff6d9" stroke="#eadfb7"/>
+  <text x="892" y="372" font-size="14" font-weight="700" fill="#1c1c1c">AI (app/ai/)</text>
+  <text x="892" y="398" font-size="13" fill="#3d3d3d">1. parser.py — сума, валюта, магазин (regex)</text>
+  <text x="892" y="422" font-size="13" fill="#3d3d3d">2. classifier.py — TF-IDF (char 2–5 + word 1–2)</text>
+  <text x="910" y="441" font-size="13" fill="#3d3d3d">+ LogisticRegression(C=12), 17 класів,</text>
+  <text x="910" y="460" font-size="13" fill="#3d3d3d">навчання при старті з training_data.csv</text>
+  <text x="892" y="486" font-size="13" fill="#3d3d3d">3. personalizer.py — найближче виправлення</text>
+  <text x="910" y="505" font-size="13" fill="#3d3d3d">(косинусна схожість, поріг 0.50)</text>
+  <text x="892" y="531" font-size="13" fill="#3d3d3d">4. рішення: модель / «Інше» (conf &lt; 0.30) /</text>
+  <text x="910" y="550" font-size="13" fill="#3d3d3d">категорія користувача + пояснення</text>
+  <text x="892" y="578" font-size="12" fill="#6b6b6b">без зовнішніх API і ключів</text>
+
+  <rect x="874" y="612" width="362" height="84" rx="14" fill="#ffffff" stroke="#e2dcd2"/>
+  <text x="892" y="638" font-size="14" font-weight="700" fill="#1c1c1c">eval/ · tests/</text>
+  <text x="892" y="661" font-size="13" fill="#3d3d3d">evaluate.py, final_check.py — контрольні набори</text>
+  <text x="892" y="682" font-size="13" fill="#3d3d3d">pytest: сервіс, AI, бюджет, персоналізація, HTTP</text>
+
+  <line x1="1055" y1="237" x2="1055" y2="253" stroke="#2b2b2b" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="1055" y1="325" x2="1055" y2="343" stroke="#2b2b2b" stroke-width="2" marker-end="url(#a)"/>
+<!-- HTTP -->
+  <line x1="626" y1="480" x2="872" y2="292" stroke="#2b2b2b" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="872" y1="312" x2="628" y2="505" stroke="#2b2b2b" stroke-width="1.5" stroke-dasharray="6 5" marker-end="url(#a)"/>
+  <text x="664" y="560" font-size="13" font-weight="700" fill="#1c1c1c">HTTP/JSON</text>
+  <text x="664" y="580" font-size="12" fill="#3d3d3d">POST /categorize</text>
+  <text x="664" y="597" font-size="12" fill="#3d3d3d">{text, personal_examples}</text>
+  <text x="664" y="614" font-size="12" fill="#3d3d3d">POST /budget/summary</text>
+  <text x="664" y="634" font-size="12" fill="#6b6b6b">adb reverse :8000</text>
+  <text x="664" y="651" font-size="12" fill="#6b6b6b">або Wi‑Fi IP ноутбука</text>
+  </svg>

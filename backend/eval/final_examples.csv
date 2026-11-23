@@ -1,0 +1,16 @@
+kind,text,expected,examples_override,note
+typical,Епіцентр 640 грн,housing,,виправлення «Епіцентр → Житло» застосовано
+typical,Майстерня шоколаду цукерки 280,gifts,,рідкісний магазин після одного виправлення
+typical,Книгарня Є 380 грн,entertainment,,модель була невпевнена → категорія користувача
+typical,пральня 200,housing,,
+typical,Укрпошта 60,shopping,,
+typical,Кава в Aroma Kava 85 грн,coffee,,контекст не заважає звичайному запиту
+boundary,SportLife 900,health,,схожість близько порогу 0.50
+boundary,нова сукня 1200,clothing,,хибний збіг з «Нова пошта» — відоме обмеження
+invalid,12345,reject,,лише цифри → відмова
+invalid,Епіцентр 640,reject,"[{""text"": ""Епіцентр"", ""category"": ""nope""}]",невідома категорія у прикладі → відмова
+previous,Кава в Aroma Kava 85 грн,coffee,,"ЛР2, приклад 1"
+previous,Uklon до роботи 142,transport,,"ЛР2, приклад 2"
+previous,"Сільпо 486,30",groceries,,"ЛР2, приклад 3"
+previous,Netflix 299 грн,subscriptions,,"ЛР2, приклад 4"
+previous,зарплата за листопад 38 000 грн,salary,,"ЛР2, приклад 5"

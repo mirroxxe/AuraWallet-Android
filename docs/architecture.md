@@ -19,6 +19,8 @@
 └────────────────────────────────────────────────────────────────────────────┘                     └────────────────────────────┘
 ```
 
+Графічна схема: [`architecture-final.svg`](architecture-final.svg).
+
 ## Mobile (`mobile/app/src/main/java/com/aurawallet/app/`) — після ЛР5
 Залежності йдуть лише вниз: `ui → domain ← data`. `domain` не імпортує Android, Retrofit, Room чи Compose.
 

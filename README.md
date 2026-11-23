@@ -18,6 +18,7 @@
 - [ЛР4: локальні дані (Room)](#лр4-локальні-дані-room)
 - [ЛР5: оптимізація архітектури](#лр5-оптимізація-архітектури-варіант-а--mobile)
 - [ЛР6: персоналізація AI](#лр6-розвиток-ai--персоналізація-варіант-а)
+- [ЛР7: фінальна збірка й запуск з нуля](#лр7-фінальна-збірка-перевірки-та-демонстрація)
 - [Обмеження поточної версії](#обмеження-поточної-версії)
 
 ## Структура репозиторію
@@ -69,7 +70,7 @@ AuraWallet-Android/
 
 ## Запуск backend
 
-Потрібен Python 3.11+.
+Потрібен Python 3.9+.
 
 ```bash
 cd backend
@@ -106,7 +107,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 3. Запустіть backend, потім натисніть **Run ▶** у Android Studio.
 4. Unit-тести клієнта: `./gradlew test` або правою кнопкою на `app/src/test` → *Run Tests*.
 
-Стек: Kotlin 2.1, Jetpack Compose (Material 3), Retrofit + kotlinx.serialization, OkHttp, ViewModel + StateFlow. Мінімальна версія — Android 8.0 (API 26). Дозволи: лише `INTERNET`.
+Стек: Kotlin 2.2.10 (AGP 9.5.1, Gradle 9.6), Jetpack Compose (Material 3), Retrofit + kotlinx.serialization, OkHttp, ViewModel + StateFlow. Мінімальна версія — Android 8.0 (API 26). Дозволи: лише `INTERNET`.
 
 ## API
 
@@ -281,6 +282,66 @@ cd ../mobile && ./gradlew test
 
 **Coding agent:** код, тести й документацію ЛР6 підготував Claude (Anthropic) за правилами `docs/ai-instructions.md`, окремими commit. Студент перевіряє: `pytest`, `eval.evaluate`, `./gradlew test`, ручні сценарії P1–P6.
 
+## ЛР7: фінальна збірка, перевірки та демонстрація
+**Фінальний сценарій:** опис операції текстом → AI-категорія, сума, магазин і пояснення (з урахуванням власних виправлень) → «Зберегти» → історія й бюджет місяця. Опис, критерії C1–C5 і поведінка UI: [`docs/lab7/final-scenario.md`](docs/lab7/final-scenario.md).
+**Архітектура:** [`docs/architecture-final.svg`](docs/architecture-final.svg) (актуальна; `docs/architecture.svg` — концепція з ЛР1).
+
+### Вимоги до середовища
+| | Версія |
+|---|---|
+| macOS / Windows / Linux | будь-яка з Android Studio |
+| Android Studio | з AGP 9.5.1, Gradle 9.6 (wrapper у репозиторії), JDK 21 вбудований |
+| Android SDK | compileSdk / targetSdk 37, minSdk 26 (Android 8.0+) |
+| Python | 3.9+ (перевірено 3.9 і 3.13) |
+| Зовнішні сервіси / ключі | **не потрібні**: AI — власна модель scikit-learn, навчається при старті з `backend/app/ai/training_data.csv` |
+
+### Запуск з нуля
+```bash
+git clone https://github.com/mirroxxe/AuraWallet-Android.git && cd AuraWallet-Android
+
+# 1. Backend (Термінал 1)
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env            # приклад конфігурації без секретів
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# перевірка: curl http://localhost:8000/health → {"status":"ok",...}
+
+# 2. Адреса API для застосунку (Термінал 2)
+cd ../mobile
+cp local.properties.example local.properties   # sdk.dir Android Studio допише сама
+echo "aura.apiBaseUrl=http://127.0.0.1:8000/" >> local.properties
+```
+3. Android Studio → *File → Open* → папка `mobile/` → дочекатися Sync → запустити емулятор → **Run ▶**.
+4. Після кожного старту емулятора: `~/Library/Android/sdk/platform-tools/adb reverse tcp:8000 tcp:8000`.
+
+**Адреса API** задається під час збирання (`aura.apiBaseUrl` у `mobile/local.properties` → `BuildConfig.API_BASE_URL`):
+| Пристрій | `aura.apiBaseUrl` | Додатково |
+|---|---|---|
+| Емулятор (рекомендовано) | `http://127.0.0.1:8000/` | `adb reverse tcp:8000 tcp:8000` |
+| Емулятор без тунелю | `http://10.0.2.2:8000/` | на деяких машинах тайм-аут (DF1) |
+| Телефон у тій самій Wi‑Fi | `http://<IP ноутбука>:8000/` (IP: `ipconfig getifaddr en0` на Mac) | backend з `--host 0.0.0.0`; після зміни адреси — перезібрати APK |
+
+### APK
+```bash
+cd mobile && ./gradlew assembleDebug
+# → mobile/app/build/outputs/apk/debug/app-debug.apk  (навчальна debug-збірка, підписана debug-ключем)
+adb install -r app/build/outputs/apk/debug/app-debug.apk   # або перетягнути файл на вікно емулятора
+```
+APK, доданий до релізу `lab7-final`, зібрано з фінального commit і адресою `http://127.0.0.1:8000/` (емулятор + `adb reverse`). Для телефона зберіть APK зі своєю IP-адресою.
+
+### Перевірка
+```bash
+cd backend && pytest -q                    # backend: сервіс, AI, бюджет, персоналізація, HTTP
+python -m eval.final_check                 # AI: 10 прикладів ЛР6 + 5 прикладів ЛР2
+cd ../mobile && ./gradlew test             # mobile JVM-тести ЛР2–ЛР6
+```
+Ручні перевірки F1–F10: [`docs/lab7/functional-tests.md`](docs/lab7/functional-tests.md) · AI: [`docs/lab7/ai-check.md`](docs/lab7/ai-check.md) · дефекти: [`docs/lab7/defects.md`](docs/lab7/defects.md) · сценарій захисту: [`docs/lab7/demo-script.md`](docs/lab7/demo-script.md).
+Відтворення збою: зупинити backend (мережа); `AI_SIMULATE_FAILURE=true` у `.env` і перезапуск (збій AI); демо-режим + слово «помилка» (fake, позначено).
+
+### Внесок coding agent
+Код, тести, скрипти оцінки й документацію ЛР1–ЛР7 підготовлено з coding agent Claude (Anthropic) за правилами `docs/ai-instructions.md`, окремими перевіреними commit. Студент виконує збірку, ручні перевірки F1–F10 на емуляторі, тести й демонстрацію.
+
 ## Обмеження поточної версії
 
 - Модель навчена на 201 вигаданому прикладі: нові магазини й рідкісні формулювання можуть отримати низьку впевненість (напр. «квиток на потяг»).
@@ -297,6 +358,7 @@ cd ../mobile && ./gradlew test
 - [x] ЛР4 — локальна історія в Room: список, деталі, видалення/очищення з підтвердженням, «очікує» + «Надіслати»
 - [x] ЛР5 — варіант А: шари ui / domain / data, use case, інтерфейс репозиторію з real і fake реалізаціями, ручний DI, тести без backend, демо-перемикач
 - [x] ЛР6 — варіант А: персоналізація розпізнавання за виправленнями користувача (33 % → 83 % на персональних прикладах)
+- [x] ЛР7 — фінальна збірка: сценарій і критерії, AI-перевірка (7/8, 2/2, 5/5), функціональні перевірки F1–F10, APK, схема архітектури, сценарій захисту
 
 ## Дизайн
 
