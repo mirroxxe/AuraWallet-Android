@@ -6,12 +6,13 @@ import logging
 import time
 from datetime import date
 
+from .ai import personalizer
 from .ai.classifier import AIUnavailableError, TransactionClassifier
 from .ai.parser import parse
 from .categories import INCOME_CATEGORIES, label
 from .config import Settings
 from .schemas import (Alternative, BudgetSummaryRequest, BudgetSummaryResponse, CategorizeRequest,
-                      CategorizeResponse, CategorySpend)
+                      CategorizeResponse, CategorySpend, PersonalizationInfo)
 
 log = logging.getLogger("aurawallet")
 
@@ -32,37 +33,58 @@ def _explain(category_label: str, confidence: float, keywords: list[str], mercha
     return f"Схоже на «{category_label}» ({pct}%) на основі {reason}.{where}"
 
 
+def _explain_personal(matched_text: str, chosen_label: str, similarity: float, model_label: str, locale: str) -> str:
+    pct = round(similarity * 100)
+    if locale == "en":
+        return f"You previously filed «{matched_text}» under {chosen_label} (similarity {pct}%). The model suggested {model_label}."
+    return f"Ви раніше віднесли «{matched_text}» до «{chosen_label}» (схожість {pct}%). Модель пропонувала «{model_label}»."
+
+
 def categorize(req: CategorizeRequest, classifier: TransactionClassifier | None, settings: Settings) -> CategorizeResponse:
     started = time.perf_counter()
     if classifier is None or settings.simulate_ai_failure:
         raise AIUnavailableError("classifier is not available")
 
+    # 1. Підготовка даних
     entities = parse(req.text)
+    examples = personalizer.prepare(req.personal_examples)
+    # 2. AI-обробка
     try:
         prediction = classifier.predict(entities.cleaned_text)
+        match = personalizer.best_match(entities.cleaned_text, examples, classifier.embed) if examples else None
     except Exception as exc:  # будь-яка внутрішня помилка моделі → контрольована відповідь
         log.exception("AI prediction failed")
         raise AIUnavailableError(str(exc)) from exc
-
+    # 3. Перетворення результату
     low = prediction.confidence < settings.min_confidence
-    category = "other" if low else prediction.category
-    alternatives = [(prediction.category, prediction.confidence)] if low else []
-    alternatives += prediction.alternatives
+    decision = personalizer.decide(prediction, low, match, settings.personal_min_similarity)
+    model_label = label(prediction.category, req.locale)
+
+    if decision.match is not None:
+        m = decision.match
+        explanation = _explain_personal(m.example.text, label(decision.category, req.locale), m.similarity, model_label, req.locale)
+        info = PersonalizationInfo(matched_text=m.example.text, matched_category=m.example.category,
+                                   similarity=round(m.similarity, 3), model_category=prediction.category,
+                                   model_label=model_label)
+    else:
+        explanation = _explain(model_label, prediction.confidence, prediction.keywords, entities.merchant, low, req.locale)
+        info = None
 
     return CategorizeResponse(
-        category=category,
-        label=label(category, req.locale),
-        confidence=round(prediction.confidence, 3),
-        is_income=category in INCOME_CATEGORIES,
+        category=decision.category,
+        label=label(decision.category, req.locale),
+        confidence=round(decision.confidence, 3),
+        is_income=decision.category in INCOME_CATEGORIES,
         amount=entities.amount,
         currency=entities.currency,
         merchant=entities.merchant,
-        explanation=_explain(label(prediction.category, req.locale), prediction.confidence,
-                             prediction.keywords, entities.merchant, low, req.locale),
+        explanation=explanation,
         alternatives=[Alternative(category=c, label=label(c, req.locale), confidence=round(p, 3))
-                      for c, p in alternatives[:3]],
-        low_confidence=low,
+                      for c, p in decision.alternatives[:3]],
+        low_confidence=decision.low_confidence,
         processing_ms=round((time.perf_counter() - started) * 1000, 2),
+        confidence_source=decision.source,
+        personalization=info,
     )
 
 

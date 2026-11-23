@@ -8,6 +8,21 @@ import kotlinx.serialization.Serializable
 data class CategorizeRequestDto(
     val text: String,
     val locale: String = "uk",
+    /** ЛР6: до 50 виправлень користувача, новіші першими. Порожній список не надсилається. */
+    @SerialName("personal_examples") val personalExamples: List<PersonalExampleDto> = emptyList(),
+)
+
+@Serializable
+data class PersonalExampleDto(val text: String, val category: String)
+
+/** ЛР6: чим персоналізовано результат. */
+@Serializable
+data class PersonalizationDto(
+    @SerialName("matched_text") val matchedText: String,
+    @SerialName("matched_category") val matchedCategory: String,
+    val similarity: Double,
+    @SerialName("model_category") val modelCategory: String,
+    @SerialName("model_label") val modelLabel: String,
 )
 
 /** JSON-відповідь backend. Імена полів збігаються з Pydantic-моделлю CategorizeResponse. */
@@ -24,6 +39,9 @@ data class CategorizeResponseDto(
     val alternatives: List<AlternativeDto> = emptyList(),
     @SerialName("low_confidence") val lowConfidence: Boolean = false,
     @SerialName("processing_ms") val processingMs: Double = 0.0,
+    /** ЛР6: "model" — confidence = ймовірність моделі; "personal" — схожість із виправленням користувача. */
+    @SerialName("confidence_source") val confidenceSource: String = "model",
+    val personalization: PersonalizationDto? = null,
 )
 
 @Serializable

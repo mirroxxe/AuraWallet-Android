@@ -16,13 +16,14 @@ Base URL (dev): `http://127.0.0.1:8000/` через `adb reverse`, або `http:
 |---|---|---|---|
 | `text` | string | так | 2–200 символів після нормалізації пробілів, має містити хоча б одну літеру |
 | `locale` | `"uk"` \| `"en"` | ні (`uk`) | мова `label` і `explanation` |
+| `personal_examples` | `[{text, category}]` | ні (`[]`) | ЛР6: 0–50 виправлень користувача, новіші першими; `text` 2–200 символів, `category` — відомий код. Невідома категорія → 422, `field = personal_examples.N.category` |
 
 Відповідь 200 `CategorizeResponse`:
 | Поле | Тип | Опис |
 |---|---|---|
 | `category` | string | код категорії або `other` |
 | `label` | string | назва категорії мовою `locale` |
-| `confidence` | number 0..1 | ймовірність найкращої категорії (навіть якщо повернуто `other`) |
+| `confidence` | number 0..1 | при `confidence_source = model` — ймовірність найкращої категорії від моделі (навіть якщо повернуто `other`); при `personal` — косинусна схожість із виправленням користувача, **не** ймовірність правильності |
 | `is_income` | bool | `true` для `salary`, `freelance`, `cashback` |
 | `amount` | number \| null | сума з тексту |
 | `currency` | `UAH`/`USD`/`EUR`/`PLN` \| null | |
@@ -31,6 +32,19 @@ Base URL (dev): `http://127.0.0.1:8000/` через `adb reverse`, або `http:
 | `alternatives` | `[{category,label,confidence}]` | до 3 варіантів |
 | `low_confidence` | bool | модель невпевнена → обрати вручну |
 | `processing_ms` | number | час обробки на сервері |
+| `confidence_source` | `"model"` \| `"personal"` | ЛР6: звідки `confidence` |
+| `personalization` | object \| null | ЛР6: `{matched_text, matched_category, similarity, model_category, model_label}`, якщо категорію взято з виправлення користувача |
+
+Приклад (ЛР6):
+```json
+// запит
+{"text": "Епіцентр 640 грн", "personal_examples": [{"text": "Епіцентр фарба для стін 1200", "category": "housing"}]}
+// відповідь (скорочено)
+{"category": "housing", "label": "Житло", "confidence": 0.87, "confidence_source": "personal",
+ "personalization": {"matched_text": "Епіцентр фарба для стін 1200", "matched_category": "housing",
+                     "similarity": 0.87, "model_category": "shopping", "model_label": "Покупки"},
+ "alternatives": [{"category": "shopping", "label": "Покупки", "confidence": 0.84}], "low_confidence": false, "...": "..."}
+```
 
 Mobile ігнорує невідомі поля (`ignoreUnknownKeys = true`), тож додавання нових полів у відповідь — сумісна зміна. Видалення чи перейменування — несумісна, потребує оновлення `ApiModels.kt` і цього документа.
 

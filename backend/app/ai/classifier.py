@@ -71,6 +71,12 @@ class TransactionClassifier:
             keywords=self._keywords(text, best),
         )
 
+    def embed(self, texts: list[str]):
+        """ЛР6: символьні TF-IDF-вектори (L2-нормовані) у тому ж просторі ознак, на якому навчена модель.
+        Скалярний добуток двох векторів = косинусна схожість."""
+        chars = self._pipeline.named_steps["features"].transformer_list[0][1]
+        return chars.transform(texts)
+
     def _keywords(self, text: str, class_index: int, limit: int = 3) -> list[str]:
         """Слова з тексту, які найбільше «тягнуть» до обраної категорії."""
         vocab = self._words.vocabulary_

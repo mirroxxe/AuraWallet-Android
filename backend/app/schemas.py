@@ -7,6 +7,32 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+MAX_PERSONAL_EXAMPLES = 50
+
+
+class PersonalExample(BaseModel):
+    """ЛР6: операція, категорію якої користувач раніше виправив вручну (зберігається лише на пристрої)."""
+
+    text: str = Field(..., min_length=2, max_length=200, description="Опис операції, як його ввів користувач")
+    category: str = Field(..., description="Категорія, яку обрав користувач (код із categories.py)")
+
+    @field_validator("text")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        value = " ".join(value.split())
+        if len(value) < 2:
+            raise ValueError("Опис прикладу занадто короткий")
+        return value
+
+    @field_validator("category")
+    @classmethod
+    def category_must_be_known(cls, value: str) -> str:
+        from .categories import CATEGORY_LABELS  # локальний імпорт, щоб уникнути циклу
+        if value not in CATEGORY_LABELS:
+            raise ValueError(f"Невідома категорія «{value}»")
+        return value
+
+
 class CategorizeRequest(BaseModel):
     """Опис операції, який користувач увів у мобільному застосунку."""
 
@@ -14,6 +40,10 @@ class CategorizeRequest(BaseModel):
 
     text: str = Field(..., description="Опис операції довільним текстом", min_length=1, max_length=200)
     locale: Literal["uk", "en"] = Field("uk", description="Мова підписів у відповіді")
+    personal_examples: List[PersonalExample] = Field(
+        default_factory=list, max_length=MAX_PERSONAL_EXAMPLES,
+        description="ЛР6: до 50 виправлень користувача, новіші першими. Порожньо — без персоналізації",
+    )
 
     @field_validator("text")
     @classmethod
@@ -32,12 +62,22 @@ class Alternative(BaseModel):
     confidence: float = Field(..., ge=0, le=1)
 
 
+class PersonalizationInfo(BaseModel):
+    """ЛР6: чим саме персоналізовано результат."""
+
+    matched_text: str = Field(..., description="Виправлена раніше операція, найбільш схожа на запит")
+    matched_category: str
+    similarity: float = Field(..., ge=0, le=1, description="Косинусна схожість описів без суми, 0..1")
+    model_category: str = Field(..., description="Що запропонувала модель без персоналізації")
+    model_label: str
+
+
 class CategorizeResponse(BaseModel):
     """Результат розпізнавання: категорія, сума, магазин і пояснення."""
 
     category: str = Field(..., description="Код категорії, напр. coffee")
     label: str = Field(..., description="Назва категорії мовою locale")
-    confidence: float = Field(..., ge=0, le=1, description="Впевненість моделі 0..1")
+    confidence: float = Field(..., ge=0, le=1, description="0..1; зміст залежить від confidence_source")
     is_income: bool
     amount: Optional[float] = Field(None, description="Сума, якщо знайдена в тексті")
     currency: Optional[str] = Field(None, description="ISO-код валюти: UAH, USD, EUR, PLN")
@@ -46,6 +86,9 @@ class CategorizeResponse(BaseModel):
     alternatives: List[Alternative] = []
     low_confidence: bool = Field(False, description="true, якщо модель невпевнена й варто обрати категорію вручну")
     processing_ms: float
+    confidence_source: Literal["model", "personal"] = Field(
+        "model", description="model — ймовірність класу моделі; personal — схожість із виправленням користувача")
+    personalization: Optional[PersonalizationInfo] = None
 
 
 class HealthResponse(BaseModel):

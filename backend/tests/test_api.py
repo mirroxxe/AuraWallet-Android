@@ -70,3 +70,29 @@ def test_categorize_still_works_after_lab3(client):
     """Регресія ЛР2: основний сценарій не зламаний."""
     r = client.post("/api/v1/transactions/categorize", json={"text": "Кава в Aroma Kava 85 грн"})
     assert r.status_code == 200 and r.json()["category"] == "coffee"
+
+
+# ---------- ЛР6: персоналізація ----------
+
+def test_categorize_with_personal_examples(client):
+    r = client.post("/api/v1/transactions/categorize", json={
+        "text": "Епіцентр 640 грн",
+        "personal_examples": [{"text": "Епіцентр фарба для стін 1200", "category": "housing"}],
+    })
+    body = r.json()
+    assert r.status_code == 200
+    assert body["category"] == "housing" and body["confidence_source"] == "personal"
+    assert body["personalization"]["model_category"] == "shopping"
+
+
+def test_categorize_without_examples_has_model_source(client):
+    body = client.post("/api/v1/transactions/categorize", json={"text": "Кава 85"}).json()
+    assert body["confidence_source"] == "model" and body["personalization"] is None
+
+
+def test_personal_example_validation(client):
+    r = client.post("/api/v1/transactions/categorize", json={
+        "text": "Епіцентр 640", "personal_examples": [{"text": "Епіцентр", "category": "nope"}]})
+    assert r.status_code == 422
+    assert r.json()["error"]["field"] == "personal_examples.0.category"
+
