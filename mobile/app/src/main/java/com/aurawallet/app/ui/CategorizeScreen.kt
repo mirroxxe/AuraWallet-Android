@@ -70,6 +70,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -417,11 +420,13 @@ private fun ResultCard(
                 if (!r.lowConfidence) add(Categorization.Alternative(r.category, r.label, r.confidence))
                 addAll(r.alternatives)
             }
-            if (options.size > 1) {
-                Text(
-                    if (r.lowConfidence) "Оберіть категорію:" else "Не та категорія? Змініть:",
-                    style = MaterialTheme.typography.labelMedium, color = c.ink2,
-                )
+            // ЛР6: виправлення стають персональним контекстом, тож обрати можна будь-яку категорію, а не лише альтернативи AI.
+            var showAll by remember { mutableStateOf(false) }
+            Text(
+                if (r.lowConfidence) "Оберіть категорію:" else "Не та категорія? Змініть:",
+                style = MaterialTheme.typography.labelMedium, color = c.ink2,
+            )
+            run {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     options.forEach { alt ->
                         FilterChip(
@@ -439,6 +444,33 @@ private fun ResultCard(
                             ),
                             border = null,
                         )
+                    }
+                    FilterChip(
+                        selected = showAll,
+                        onClick = { showAll = !showAll },
+                        label = { Text(if (showAll) "Сховати" else "Усі категорії") },
+                        leadingIcon = { Icon(Icons.Filled.MoreHoriz, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        shape = CircleShape,
+                        colors = FilterChipDefaults.filterChipColors(containerColor = c.surface, labelColor = c.ink, iconColor = c.ink,
+                            selectedContainerColor = c.lilac, selectedLabelColor = c.ink, selectedLeadingIconColor = c.ink),
+                    )
+                }
+                if (showAll) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CATEGORY_LABELS.filterKeys { code -> options.none { it.category == code } }.forEach { (code, label) ->
+                            FilterChip(
+                                selected = code == state.chosenCategory,
+                                onClick = { onChoose(code, label) },
+                                label = { Text(label) },
+                                leadingIcon = { Icon(categoryIcon(code), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                shape = CircleShape,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = c.ink, selectedLabelColor = c.onInk, selectedLeadingIconColor = c.onInk,
+                                    containerColor = c.stone, labelColor = c.ink, iconColor = c.ink,
+                                ),
+                                border = null,
+                            )
+                        }
                     }
                 }
             }
@@ -536,6 +568,15 @@ private fun CategoryTile(category: String, size: Int) {
         Icon(categoryIcon(category), contentDescription = null, tint = c.ink, modifier = Modifier.size((size * 0.46).dp))
     }
 }
+
+/** Категорії як у backend `categories.py` (uk). Використовуються для ручного вибору. */
+private val CATEGORY_LABELS: Map<String, String> = linkedMapOf(
+    "groceries" to "Продукти", "cafes" to "Кафе", "coffee" to "Кава", "transport" to "Транспорт",
+    "entertainment" to "Розваги", "subscriptions" to "Підписки", "housing" to "Житло", "health" to "Здоров'я",
+    "clothing" to "Одяг", "gifts" to "Подарунки", "travel" to "Подорожі", "mobile" to "Зв'язок",
+    "shopping" to "Покупки", "transfers" to "Перекази", "salary" to "Зарплата", "freelance" to "Фриланс",
+    "cashback" to "Кешбек",
+)
 
 private fun categoryIcon(category: String): ImageVector = when (category) {
     "groceries" -> Icons.Filled.ShoppingCart
